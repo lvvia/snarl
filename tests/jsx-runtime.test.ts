@@ -8,7 +8,7 @@ import { assertEquals, assertThrows } from "@std/assert";
 import {
 	Fragment,
 	isJsxElement,
-	JSX,
+	type JSX,
 	jsx,
 	jsxAttr,
 	jsxEscape,
@@ -104,8 +104,14 @@ Deno.test("jsx: component error handling", async () => {
 	function Broken() {
 		throw new Error("boom💣💥");
 	}
-	const result = await renderToString(jsx(Broken as JSX.FC, {}));
-	assertEquals(result, "<!-- error rendering component -->");
+	const og = console.error;
+	console.error = () => {};
+	try {
+		const result = await renderToString(jsx(Broken as JSX.FC, {}));
+		assertEquals(result, "<!-- error rendering component -->");
+	} finally {
+		console.error = og;
+	}
 });
 
 Deno.test("jsx: arrays of children", async () => {

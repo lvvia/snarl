@@ -5,7 +5,7 @@
  */
 
 import { assertEquals, assertThrows } from "@std/assert";
-import { chain, compose, Context } from "@july/snarl";
+import { chain, compose, Context, MutableResponse } from "@july/snarl";
 
 const mockInfo = { remoteAddr: { hostname: "127.0.0.1" } } as Deno.ServeHandlerInfo<Deno.NetAddr>;
 
@@ -149,13 +149,13 @@ Deno.test("context: compose", async (t) => {
 	await t.step("runs middleware in order", async () => {
 		const order: string[] = [];
 
-		const mw1 = async (_: Context, next: () => Promise<Response>) => {
+		const mw1 = async (_: Context, next: () => Promise<MutableResponse>) => {
 			order.push("1-before");
 			const res = await next();
 			order.push("1-after");
 			return res;
 		};
-		const mw2 = async (_: Context, next: () => Promise<Response>) => {
+		const mw2 = async (_: Context, next: () => Promise<MutableResponse>) => {
 			order.push("2-before");
 			const res = await next();
 			order.push("2-after");
@@ -172,7 +172,7 @@ Deno.test("context: compose", async (t) => {
 	});
 
 	await t.step("short-circuit middleware", async () => {
-		const auth = (ctx: Context, _next: () => Promise<Response>) => {
+		const auth = (ctx: Context, _next: () => Promise<MutableResponse>) => {
 			return ctx.json({ error: "unauthorized" }, { status: 401 });
 		};
 		const handler = compose([auth], (ctx) => ctx.text("secret"));
@@ -190,24 +190,24 @@ Deno.test("context: compose", async (t) => {
 Deno.test("context: chain", async (t) => {
 	await t.step("passes through when empty", async () => {
 		const mw = chain();
-		const res = await mw(makeCtx(), () => Promise.resolve(new Response("ok")));
+		const res = await mw(makeCtx(), () => Promise.resolve(new MutableResponse("ok")));
 		assertEquals(await res.text(), "ok");
 	});
 
 	await t.step("chains multiple middleware into one", async () => {
 		const calls: string[] = [];
-		const a = (_ctx: Context, next: () => Promise<Response>) => {
+		const a = (_ctx: Context, next: () => Promise<MutableResponse>) => {
 			calls.push("a");
 			return next();
 		};
-		const b = (_ctx: Context, next: () => Promise<Response>) => {
+		const b = (_ctx: Context, next: () => Promise<MutableResponse>) => {
 			calls.push("b");
 			return next();
 		};
 		const mw = chain(a, b);
 		await mw(makeCtx(), () => {
 			calls.push("final");
-			return Promise.resolve(new Response("done"));
+			return Promise.resolve(new MutableResponse("done"));
 		});
 		assertEquals(calls, ["a", "b", "final"]);
 	});

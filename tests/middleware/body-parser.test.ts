@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { assertEquals } from "jsr:@std/assert@1.0.17";
+import { assertEquals } from "@std/assert";
 import { createRouter, formParser, jsonParser } from "@july/snarl";
 
 const mockInfo = { remoteAddr: { hostname: "127.0.0.1" } } as Deno.ServeHandlerInfo<Deno.NetAddr>;

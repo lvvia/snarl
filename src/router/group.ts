@@ -1,0 +1,111 @@
+/**
+ * snarl, a minimal web framework for deno
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+import { compose, type Middleware } from "../context/middleware.ts";
+import { httpMethods, type Method } from "../types.ts";
+import { insertRoute, type RadixNode, type TreeOptions } from "./tree.ts";
+import { extractPattern, type Route, type RoutePayload } from "./route.ts";
+
+export function mergeSubRouter(
+	subRoutes: Record<Method, Route<any>[]>,
+	subMiddlewares: Middleware[],
+	targetRoutes: Record<Method, Route<any>[]>,
+	trees: Record<Method, RadixNode<RoutePayload>>,
+	exactRoutes: Record<Method, Record<string, Route<any>>>,
+	treeOptions: TreeOptions,
+): void {
+	const hasMiddlewares = subMiddlewares.length > 0;
+
+	for (let m = 0; m < httpMethods.length; m++) {
+		const method = httpMethods[m];
+		const routes = subRoutes[method];
+
+		if (!routes || routes.length === 0) continue;
+
+		mergeMethodRoutes(
+			routes,
+			subMiddlewares,
+			hasMiddlewares,
+			targetRoutes[method],
+			trees[method],
+			exactRoutes[method],
+			treeOptions,
+		);
+	}
+}
+
+function mergeMethodRoutes(
+	routes: Route<any>[],
+	subMiddlewares: Middleware[],
+	hasMiddlewares: boolean,
+	targetArray: Route<any>[],
+	tree: RadixNode<RoutePayload>,
+	exactMap: Record<string, Route<any>>,
+	treeOptions: TreeOptions,
+): void {
+	const dynamicPatternRegex = /[*?:]/;
+	const routesLen = routes.length;
+
+	for (let i = 0; i < routesLen; i++) {
+		const route = routes[i];
+
+		if (hasMiddlewares) {
+			route.handler = compose(subMiddlewares, route.handler);
+		}
+
+		targetArray.push(route);
+		processRoutePattern(route, tree, exactMap, dynamicPatternRegex, treeOptions);
+	}
+}
+
+function processRoutePattern(
+	route: Route<any>,
+	tree: RadixNode<RoutePayload>,
+	exactMap: Record<string, Route<any>>,
+	dynamicPatternRegex: RegExp,
+	treeOptions: TreeOptions,
+): void {
+	const pattern = extractPattern(route.pattern);
+	const payload: RoutePayload = { handler: route.handler, route };
+
+	insertRoute(tree, pattern, payload, treeOptions);
+
+	if (!dynamicPatternRegex.test(pattern)) {
+		exactMap[pattern] = route;
+	}
+}
+
+function normalisePath(path: string): string {
+	let idx = path.indexOf("//");
+	if (idx === -1) return path;
+
+	let result = path.slice(0, idx + 1);
+	let start = idx + 2;
+	const len = path.length;
+
+	while (start < len) {
+		idx = path.indexOf("/", start);
+
+		if (idx === -1) {
+			result += path.slice(start);
+			break;
+		}
+
+		if (idx > start) {
+			result += path.slice(start, idx + 1);
+		}
+
+		start = idx + 1;
+	}
+
+	return result;
+}
+
+export function joinPrefix(parentPrefix: string, childPrefix: string): string {
+	if (!parentPrefix) return childPrefix;
+	if (!childPrefix) return parentPrefix;
+	return normalisePath(parentPrefix + childPrefix);
+}
