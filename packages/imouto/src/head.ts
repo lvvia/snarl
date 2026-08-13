@@ -138,7 +138,7 @@ export function collectHeadContent(ctx: Context): {
 }
 
 export function head(): Middleware {
-	return async (ctx: Context, next: () => Promise<Response>) => {
+	return async (ctx, next) => {
 		const response = await next();
 
 		const store = ctx.state.get(HEAD_STORE) as Map<string, HeadEntry> | undefined;
@@ -152,7 +152,7 @@ export function head(): Middleware {
 		const attrs = ctx.state.get(ATTR_STORE) as Record<string, string> || {};
 
 		const html = await response.text();
-		const result = injectIntoHead(html, await content, attrs);
+		const result = injectIntoHead(html ?? "", await content, attrs);
 
 		const headers = new Headers(response.headers);
 		headers.delete("Content-Length");

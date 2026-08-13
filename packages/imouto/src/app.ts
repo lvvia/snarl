@@ -45,7 +45,7 @@ export function transform(mini: ReturnType<typeof minify>): Middleware {
 		const contentType = response.headers.get("Content-Type") ?? "";
 		if (!contentType.includes("text/html")) return response;
 
-		let html = await response.text();
+		let html = await response.text() ?? "";
 
 		const head = collectHeadContent(ctx);
 		if (head) {
