@@ -20,7 +20,7 @@ app.get("/user/:id/todos/:todoId", (ctx) => {
 });
 
 app.get("/search", (ctx) => {
-	return ctx.json({ term: ctx.url.searchParams.get("term") });
+	return ctx.json({ term: ctx.query.get("term") });
 });
 
 app.post("/echo", async (ctx) => {

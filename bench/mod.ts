@@ -81,17 +81,17 @@ const colours: Record<string, (s: string) => string> = {
 const colourFor = (name: string) => colours[name] ?? white;
 
 const timestamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
-const logfile = `bench-${timestamp}.log`;
-const jsonfile = `bench-${timestamp}.json`;
+const logFile = `bench-${timestamp}.log`;
+const jsonFile = `bench-${timestamp}.json`;
 
 function log(text: string = ""): void {
 	console.log(text);
-	Deno.writeTextFileSync(logfile, stripAnsiCode(text) + "\n", { append: true });
+	Deno.writeTextFileSync(logFile, stripAnsiCode(text) + "\n", { append: true });
 }
 
 function logRaw(text: string): void {
 	console.log(text);
-	Deno.writeTextFileSync(logfile, stripAnsiCode(text) + "\n", { append: true });
+	Deno.writeTextFileSync(logFile, stripAnsiCode(text) + "\n", { append: true });
 }
 
 const warmupTime = scenarios.length * opts.warmup;
@@ -366,7 +366,7 @@ for (const [name, server] of activeServers) {
 perish(results);
 
 const actualTime = ((performance.now() - runStart) / 1000).toFixed(1);
-log(bold(cyan(`\n  done in ${actualTime}s`)) + dim(` (log: ${logfile})`));
+log(bold(cyan(`\n  done in ${actualTime}s`)) + dim(` (log: ${logFile})`));
 
-Deno.writeTextFileSync(jsonfile, JSON.stringify(results, null, 2));
-log(dim(`  raw results: ${jsonfile}`));
+Deno.writeTextFileSync(jsonFile, JSON.stringify(results, null, 2));
+log(dim(`  raw results: ${jsonFile}`));

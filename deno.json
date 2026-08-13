@@ -22,20 +22,19 @@
 		"@std/path": "jsr:@std/path@^1.1.6",
 		"@std/http": "jsr:@std/http@^1.1.3"
 	},
-	"exclude": ["benchmarks"],
+	"exclude": ["./bench"],
 	"fmt": {
 		"useTabs": true,
 		"semiColons": true,
 		"lineWidth": 120
 	},
 	"compilerOptions": {
-		"jsx": "precompile",
+		"jsx": "react-jsx",
 		"jsxImportSource": "@july/snarl",
 		"lib": ["deno.ns", "dom", "dom.iterable"]
 	},
 	"lint": {
 		"rules": {
-			"tags": ["recommended"],
 			"exclude": ["no-explicit-any"]
 		}
 	}
