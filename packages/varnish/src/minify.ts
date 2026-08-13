@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Context, Middleware } from "@july/snarl";
+import type { Middleware } from "@july/snarl";
 import { minify as mini } from "@minify-html/deno";
 
 const encoder = new TextEncoder();
@@ -106,13 +106,21 @@ function minifyCssFromBytes(src: Uint8Array): Uint8Array {
 	return src;
 }
 
+type MinifiableBody = string | Uint8Array;
+
+function asMinifiableBody(body: BodyInit | null): MinifiableBody | null {
+	if (typeof body === "string") return body;
+	if (body instanceof Uint8Array) return body;
+	if (body instanceof ArrayBuffer) return new Uint8Array(body);
+
+	return null;
+}
+
 /**
- * minifies `text/html` and `text/css` responses produced further down the
- * middleware chain. results are cached by raw body so repeated renders of
- * the same content (e.g. a static page) only pay the minification cost once.
+ * minifies `text/html` and `text/css` responses.
  *
  * register this as close to the outside of the middleware stack as
- * possible, after anything that mutates `Content-Type` or streams the body
+ * possible, after anything that mutates `Content-Type`.
  *
  * @example
  * ```js
@@ -120,7 +128,7 @@ function minifyCssFromBytes(src: Uint8Array): Uint8Array {
  * app.use(minify({ css: false, maxCacheEntries: 256 }));
  * ```
  */
-export default function minify(options: MinifyOptions = {}): Middleware & {
+export function minify(options: MinifyOptions = {}): Middleware & {
 	perform(input: string, isCss: boolean): string;
 	perform(input: Uint8Array, isCss: boolean): string;
 } {
@@ -161,30 +169,26 @@ export default function minify(options: MinifyOptions = {}): Middleware & {
 		return decoder.decode(data);
 	}
 
-	const middleware = (async (_ctx: Context, next: () => Promise<Response>) => {
-		const response = await next();
+	const middleware = (async (_ctx, next) => {
+		const state = await next();
 
-		if (response.headers.has("Content-Encoding")) return response;
+		if (state.headers.has("Content-Encoding")) return state;
 
-		const contentType = response.headers.get("Content-Type") ?? "";
+		const contentType = state.headers.get("Content-Type") ?? "";
 		const isHtml = html && contentType.includes("text/html");
 		const isCss = css && contentType.includes("text/css");
-		if (!isHtml && !isCss) return response;
+		if (!isHtml && !isCss) return state;
 
-		const buf = await response.arrayBuffer();
-		const bytes = new Uint8Array(buf);
-		if (bytes.length === 0) return response;
+		const body = asMinifiableBody(state.body);
+		if (body === null) return state;
+		if (typeof body !== "string" && body.length === 0) return state;
 
-		const minified = perform(bytes, isCss);
+		const minified = perform(body, isCss);
 
-		const headers = new Headers(response.headers);
-		headers.delete("Content-Length");
+		state.body = minified;
+		state.headers.delete("Content-Length");
 
-		return new Response(minified, {
-			status: response.status,
-			statusText: response.statusText,
-			headers,
-		});
+		return state;
 	}) as ReturnType<typeof minify>;
 
 	middleware.perform = perform;

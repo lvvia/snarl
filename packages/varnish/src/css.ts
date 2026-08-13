@@ -29,7 +29,7 @@ export function markStyleUsed(ctx: Context<any>, hash: string): void {
  * register this before your route handlers.
  */
 export function scopedCss(): Middleware {
-	return (ctx: Context, next: () => Promise<Response>) => {
+	return (ctx, next) => {
 		const { pathname } = ctx.url;
 		if (!pathname.startsWith("/_css/") || !pathname.endsWith(".css")) {
 			return next();
@@ -72,7 +72,7 @@ export function injectScopedStylesheet(ctx: Context, input: string): string | un
  * register this after `scopedStyling()` and before your route handlers.
  */
 export function styleScopeInjection(): Middleware {
-	return async (ctx: Context, next: () => Promise<Response>) => {
+	return async (ctx, next) => {
 		const res = await next();
 
 		const contentType = res.headers.get("Content-Type") ?? "";

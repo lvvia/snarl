@@ -4,6 +4,6 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-export { default as minify, type MinifyOptions } from "./minify.ts";
+export { minify, type MinifyOptions } from "./minify.ts";
 export * from "./scope.ts";
 export * from "./css.ts";
