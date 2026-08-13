@@ -1,12 +1,13 @@
 #!/usr/bin/env -S deno run --allow-read --allow-write
+// deno-lint-ignore-file no-import-prefix
 
-import { walk } from "https://deno.land/std/fs/walk.ts";
-import { bold, cyan, dim, green, red, yellow } from "@std/fmt/colors";
+import { walk } from "jsr:@std/fs@^1.0.24";
+import { bold, cyan, dim, green, red, yellow } from "jsr:@std/fmt@^1.0.10/colors";
 
 const cfg = {
 	project: "snarl",
-	author: "kylia",
-	license: "Apache-2.0",
+	author: "kyu.re",
+	license: "MPL-2.0",
 	get licenseLine() {
 		return `SPDX-License-Identifier: ${this.license}`;
 	},
@@ -25,7 +26,7 @@ const cfg = {
 	],
 };
 
-const JSDOC_RE = /\/\*\*\s*\n\s*\*\s*Copyright\s*\(c\)[^]*?\*\/\s*/;
+const JSDOC_RE = /\/\*\*\s*\n(?:\s*\*[^\n]*\n)*?\s*\*\s*Copyright\s*\(c\)[^]*?\*\/\s*/;
 const SLASH_RE = /\/\/\s*Copyright\s*\(c\)[^\n]*\n(\s*\/\/[^\n]*\n)*/;
 
 function detect(content: string) {
@@ -57,7 +58,7 @@ function generate(): string {
 		const description = cfg.description ? `, ${cfg.description}` : "";
 		return `// ${cfg.project}${description}\n// Copyright (c) ${cfg.yearRange} ${cfg.author}\n// ${cfg.licenseLine}`;
 	} else {
-		return `/**\n * Copyright (c) ${cfg.yearRange} ${cfg.author}\n * ${cfg.licenseLine}\n */`;
+		return `/**\n * ${cfg.project}, ${cfg.description}\n * Copyright (c) ${cfg.yearRange} ${cfg.author}\n * ${cfg.licenseLine}\n */`;
 	}
 }
 

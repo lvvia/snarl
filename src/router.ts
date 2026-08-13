@@ -1,6 +1,7 @@
 /**
- * Copyright (c) 2025-2026 kylia
- * SPDX-License-Identifier: Apache-2.0
+ * snarl, a minimal web framework for deno
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: MPL-2.0
  */
 
 import { compose, Context, ErrorHandler, Handler, Middleware } from "@july/snarl";
