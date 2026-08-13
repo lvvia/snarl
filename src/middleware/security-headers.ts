@@ -4,17 +4,9 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Middleware } from "../context.ts";
+import type { Middleware } from "../context/middleware.ts";
 
-/**
- * middleware that adds security headers to the response
- *
- * @example
- * ```ts
- * app.use(securityHeaders({ contentSecurityPolicy: "default-src 'self' 'unsafe-inline'" }));
- * ```
- */
-export function securityHeaders(options: {
+export interface SecurityHeadersOptions {
 	contentSecurityPolicy?: string;
 	strictTransportSecurity?: string;
 	xContentTypeOptions?: "nosniff";
@@ -24,7 +16,17 @@ export function securityHeaders(options: {
 	crossOriginEmbedderPolicy?: string;
 	crossOriginResourcePolicy?: string;
 	cacheControl?: string;
-} = {}): Middleware {
+}
+
+/**
+ * middleware that adds security headers to the response
+ *
+ * @example
+ * ```ts
+ * app.use(securityHeaders({ contentSecurityPolicy: "default-src 'self' 'unsafe-inline'" }));
+ * ```
+ */
+export function securityHeaders(options: SecurityHeadersOptions = {}): Middleware {
 	const {
 		contentSecurityPolicy = [
 			"default-src 'self'",
@@ -43,9 +45,9 @@ export function securityHeaders(options: {
 		cacheControl,
 	} = options;
 
-	return async (_, next) => {
-		const response = await next();
-		const headers = new Headers(response.headers);
+	return async (_ctx, next) => {
+		const state = await next();
+		const headers = state.headers;
 
 		if (contentSecurityPolicy) headers.set("Content-Security-Policy", contentSecurityPolicy);
 		if (strictTransportSecurity) headers.set("Strict-Transport-Security", strictTransportSecurity);
@@ -57,10 +59,6 @@ export function securityHeaders(options: {
 		if (crossOriginResourcePolicy) headers.set("Cross-Origin-Resource-Policy", crossOriginResourcePolicy);
 		if (cacheControl) headers.set("Cache-Control", cacheControl);
 
-		return new Response(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers,
-		});
+		return state;
 	};
 }

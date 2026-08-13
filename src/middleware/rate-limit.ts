@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Context, Handler, Middleware } from "../context.ts";
+import type { Context, Handler, Middleware } from "../context/mod.ts";
 
 /**
  * a storage backend for rate limiting data
@@ -17,7 +17,7 @@ export interface RateLimitStore {
 	 */
 	increment(key: string, windowMs: number): Promise<{ count: number; reset: number }>;
 
-	cleanup?: () => void;
+	cleanup: () => void;
 }
 
 /** in-memory implementation of `RateLimitStore` */
@@ -87,7 +87,7 @@ export function rateLimit(options: {
 	keygen?: (ctx: Context) => string;
 	handler?: Handler<any>;
 	store?: RateLimitStore;
-}): Middleware & RateLimitStore["cleanup"] {
+}): Middleware & { cleanup: RateLimitStore["cleanup"] } {
 	const {
 		windowMs,
 		max,
@@ -96,7 +96,7 @@ export function rateLimit(options: {
 		store = new MemoryStore(windowMs),
 	} = options;
 
-	const middleware = async (ctx: Context, next: () => Promise<Response>) => {
+	const middleware = (async (ctx, next) => {
 		const key = keygen(ctx);
 		const { count, reset } = await store.increment(key, windowMs);
 
@@ -105,10 +105,10 @@ export function rateLimit(options: {
 			return await handler?.(ctx) ?? ctx.tooManyRequests(undefined, retryAfter);
 		}
 		return next();
-	};
+	}) as ReturnType<typeof rateLimit>;
 
 	if (store.cleanup) {
-		(middleware as any).cleanup = store.cleanup;
+		middleware.cleanup = store.cleanup;
 	}
-	return middleware as ReturnType<typeof rateLimit>;
+	return middleware;
 }

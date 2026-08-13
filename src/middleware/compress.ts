@@ -4,9 +4,21 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Middleware } from "../context.ts";
+import type { Middleware } from "../context/middleware.ts";
 
 type Encoding = "gzip" | "deflate";
+
+export interface CompressOptions {
+	/** encodings to offer, in preference order. defaults to `["gzip", "deflate"]` */
+	encodings?: Encoding[];
+	/**
+	 * skip bodies smaller than this many bytes. only enforced when `Content-Length`
+	 * is present and known
+	 */
+	threshold?: number;
+	/** `Content-Type` prefixes eligible for compression */
+	compressibleTypes?: string[];
+}
 
 function pickEncoding(acceptEncoding: string | null, allowed: Encoding[]): Encoding | null {
 	if (!acceptEncoding) return null;
@@ -29,14 +41,7 @@ function pickEncoding(acceptEncoding: string | null, allowed: Encoding[]): Encod
  * app.use(compress());
  * ```
  */
-export function compress(options: {
-	/** encodings to offer, in preference order. defaults to `["gzip", "deflate"]` */
-	encodings?: Encoding[];
-	/** skip bodies smaller than this many bytes. defaults to `1024` */
-	threshold?: number;
-	/** `Content-Type` prefixes eligible for compression */
-	compressibleTypes?: string[];
-} = {}): Middleware {
+export function compress(options: CompressOptions = {}): Middleware {
 	const {
 		encodings = ["gzip", "deflate"],
 		threshold = 1024,
@@ -50,34 +55,47 @@ export function compress(options: {
 	} = options;
 
 	return async (ctx, next) => {
-		const response = await next();
+		const state = await next();
 
-		if (response.headers.has("Content-Encoding") || !response.body) return response;
+		if (state.headers.has("Content-Encoding") || state.body == null) return state;
 
-		const contentType = response.headers.get("Content-Type");
-		if (!contentType || !compressibleTypes.some((t) => contentType.startsWith(t))) return response;
+		const contentType = state.headers.get("Content-Type");
+		if (!contentType || !compressibleTypes.some((t) => contentType.startsWith(t))) return state;
 
-		const buf = await response.arrayBuffer();
-		if (buf.byteLength < threshold) return response;
+		const declaredLength = state.headers.get("Content-Length");
+		if (declaredLength !== null) {
+			const length = Number(declaredLength);
+			if (Number.isFinite(length) && length < threshold) return state;
+		} else {
+			const bytes = await state.bytes();
+			if (bytes !== null && bytes.byteLength < threshold) return state;
+		}
 
 		const encoding = pickEncoding(ctx.request.headers.get("Accept-Encoding"), encodings);
-		if (!encoding) return response;
+		if (!encoding) return state;
 
-		const input = new Uint8Array(buf);
-		const stream = new CompressionStream(encoding);
-		const writer = stream.writable.getWriter();
-		writer.write(input);
-		writer.close();
+		const bodyStream = toReadableStream(state.body);
+		if (!bodyStream) return state;
 
-		const headers = new Headers(response.headers);
-		headers.set("Content-Encoding", encoding);
-		headers.set("Vary", headers.has("Vary") ? `${headers.get("Vary")}, Accept-Encoding` : "Accept-Encoding");
-		headers.delete("Content-Length");
+		state.body = bodyStream.pipeThrough(new CompressionStream(encoding));
+		state.headers.set("Content-Encoding", encoding);
+		state.headers.set(
+			"Vary",
+			state.headers.has("Vary") ? `${state.headers.get("Vary")}, Accept-Encoding` : "Accept-Encoding",
+		);
+		state.headers.delete("Content-Length");
 
-		return new Response(stream.readable, {
-			status: response.status,
-			statusText: response.statusText,
-			headers,
-		});
+		return state;
 	};
+}
+
+function toReadableStream(body: BodyInit): ReadableStream<Uint8Array<ArrayBuffer>> | null {
+	if (body instanceof ReadableStream) return body;
+
+	if (typeof body === "string" || body instanceof Uint8Array || body instanceof ArrayBuffer) {
+		return new Response(body).body;
+	}
+
+	if (body instanceof Blob) return body.stream();
+	return new Response(body as any).body;
 }

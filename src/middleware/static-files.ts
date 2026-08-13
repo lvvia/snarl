@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Middleware } from "../context.ts";
+import type { Middleware } from "../context/mod.ts";
 import { getContentType } from "../mime.ts";
 import { extname, join, relative, resolve } from "@std/path";
 import { encodeHex } from "@std/encoding/hex";

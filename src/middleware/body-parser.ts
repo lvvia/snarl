@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Middleware } from "../context.ts";
+import type { Middleware } from "../context/middleware.ts";
 
 /**
  * middleware that parses `application/json` bodies into `ctx.bodyCache`

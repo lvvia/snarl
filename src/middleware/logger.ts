@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Context, Middleware } from "../context.ts";
+import type { Context, Middleware } from "../context/mod.ts";
 import { blue, dim, green, red, reset, yellow } from "@std/fmt/colors";
 
 function statusColor(status: number): typeof reset {
