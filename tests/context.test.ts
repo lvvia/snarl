@@ -10,9 +10,11 @@ import { chain, compose, Context, MutableResponse } from "@july/snarl";
 const mockInfo = { remoteAddr: { hostname: "127.0.0.1" } } as Deno.ServeHandlerInfo<Deno.NetAddr>;
 
 function makeCtx(url = "http://localhost/test", params = {}): Context {
+	const u = new URL(url);
 	return new Context(
 		new Request(url),
-		new URL(url),
+		u.pathname,
+		u.search,
 		mockInfo,
 		params,
 		"12reais",
@@ -121,7 +123,8 @@ Deno.test("context: state", () => {
 Deno.test("context: cookies", () => {
 	const ctx = new Context(
 		new Request("http://localhost/test", { headers: { Cookie: "a=1" } }),
-		new URL("http://localhost/test"),
+		"/test",
+		"",
 		mockInfo,
 		{},
 		"12reais",

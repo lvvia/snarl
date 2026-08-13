@@ -40,6 +40,29 @@ interface PathParts {
 	search: string;
 }
 
+export function normalisePathname(path: string): string {
+	let idx = path.indexOf("//");
+	if (idx === -1) return path;
+
+	let result = path.slice(0, idx + 1);
+	let start = idx + 2;
+	const len = path.length;
+
+	while (start < len) {
+		idx = path.indexOf("/", start);
+		if (idx === -1) {
+			result += path.slice(start);
+			break;
+		}
+		if (idx > start) {
+			result += path.slice(start, idx + 1);
+		}
+		start = idx + 1;
+	}
+
+	return result;
+}
+
 function extractPathParts(rawUrl: string): PathParts {
 	const schemeEnd = rawUrl.indexOf("://");
 	if (schemeEnd === -1) return fallbackPathParts(rawUrl);
@@ -51,13 +74,17 @@ function extractPathParts(rawUrl: string): PathParts {
 	const end = hashIdx === -1 ? rawUrl.length : hashIdx;
 
 	const queryIdx = rawUrl.indexOf("?", pathStart);
+	let pathname, search;
 	if (queryIdx === -1 || queryIdx > end) {
-		return { pathname: rawUrl.slice(pathStart, end), search: "" };
+		pathname = rawUrl.slice(pathStart, end);
+		search = "";
+	} else {
+		pathname = rawUrl.slice(pathStart, queryIdx);
+		search = rawUrl.slice(queryIdx, end);
 	}
-	return {
-		pathname: rawUrl.slice(pathStart, queryIdx),
-		search: rawUrl.slice(queryIdx, end),
-	};
+
+	pathname = normalisePathname(pathname);
+	return { pathname, search };
 }
 
 function fallbackPathParts(rawUrl: string): PathParts {

@@ -12,7 +12,8 @@ const mockInfo = { remoteAddr: { hostname: "127.0.0.1" } } as Deno.ServeHandlerI
 function makeCtx(): Context {
 	return new Context(
 		new Request("http://localhost/test"),
-		new URL("http://localhost/test"),
+		"http://localhost/test",
+		"",
 		mockInfo,
 		{},
 		"sixseven",
