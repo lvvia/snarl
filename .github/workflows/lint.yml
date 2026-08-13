@@ -1,0 +1,28 @@
+name: Lint
+
+on:
+  workflow_call:
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+          cache: true
+      - name: deno ci (frozen install)
+        run: deno ci
+      - name: Check formatting
+        run: deno fmt --check
+      - name: Lint
+        run: deno lint
+      - name: Type check root
+        run: deno check src/mod.ts
+      - name: Type check workspaces
+        run: |
+          for dir in $(find packages -maxdepth 2 -name deno.json -printf "%h\n" | sort -u); do
+            entry=$(jq -r '.exports | if type=="string" then . else ."." end' "$dir/deno.json")
+            deno check "$dir/$entry"
+          done

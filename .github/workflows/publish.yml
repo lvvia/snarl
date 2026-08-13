@@ -5,14 +5,13 @@ on:
     branches: [main]
     paths:
       - "src/**"
-      - "packages/varnish/src/**"
-      - "packages/twist/src/**"
+      - "packages/*/src/**"
       - "deno.json"
       - "packages/*/deno.json"
   workflow_dispatch:
     inputs:
       package:
-        description: "Package to publish"
+        description: "Package to publish (all, snarl, varnish, imouto)"
         required: true
         type: choice
         options:
@@ -26,13 +25,31 @@ jobs:
   ci:
     uses: ./.github/workflows/ci.yml
 
-  publish-snarl:
+  discover:
+    runs-on: ubuntu-latest
     needs: ci
+    outputs:
+      packages: ${{ steps.packages.outputs.list }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Get workspace packages
+        id: packages
+        run: |
+          json=$(for dir in $(find packages -maxdepth 2 -name deno.json -printf "%h\n" | sort -u); do
+            name=$(jq -r '.name' "$dir/deno.json")
+            echo "{\"name\":\"$name\",\"path\":\"$dir\"}"
+          done | jq -s .)
+          echo "list=$json" >> $GITHUB_OUTPUT
+
+  publish:
+    runs-on: ubuntu-latest
+    needs: discover
     if: |
       github.event_name == 'push' ||
-      github.event.inputs.package == 'all' ||
-      github.event.inputs.package == 'snarl'
-    runs-on: ubuntu-latest
+      github.event.inputs.package == 'all'
+    strategy:
+      matrix:
+        package: ${{ fromJson(needs.discover.outputs.packages) }}
     permissions:
       contents: read
       id-token: write
@@ -41,16 +58,16 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Publish @july/snarl
+      - name: Publish ${{ matrix.package.name }}
+        working-directory: ${{ matrix.package.path }}
         run: deno publish
 
-  publish-varnish:
-    needs: ci
-    if: |
-      github.event_name == 'push' ||
-      github.event.inputs.package == 'all' ||
-      github.event.inputs.package == 'varnish'
+  publish-selected:
     runs-on: ubuntu-latest
+    needs: discover
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.package != 'all'
     permissions:
       contents: read
       id-token: write
@@ -59,25 +76,11 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - name: Publish @404/varnish
-        working-directory: packages/varnish
-        run: deno publish
-
-  publish-imouto:
-    needs: ci
-    if: |
-      github.event_name == 'push' ||
-      github.event.inputs.package == 'all' ||
-      github.event.inputs.package == 'imouto'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - name: Publish @404/imouto
-        working-directory: packages/imouto
-        run: deno publish
+      - name: Publish ${{ github.event.inputs.package }}
+        run: |
+          PACKAGE=$(echo '${{ needs.discover.outputs.packages }}' | jq -r '.[] | select(.name == "${{ github.event.inputs.package }}") | .path')
+          if [ -z "$PACKAGE" ]; then
+            echo "Package not found"
+            exit 1
+          fi
+          cd $PACKAGE && deno publish

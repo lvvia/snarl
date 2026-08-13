@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  workflow_call:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        deno-version: [v2.x]
+        include:
+          - os: ubuntu-latest
+            deno-version: canary
+            continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: ${{ matrix.deno-version }}
+          cache: true
+      - name: deno ci
+        run: deno ci
+      - name: Run tests
+        run: deno test --allow-net --allow-write --allow-read --allow-env --allow-run
