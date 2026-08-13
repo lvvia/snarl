@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { Context } from "./context.ts";
+import type { Context } from "./context/mod.ts";
 
 /**
  * represents a message sent over server-sent events
