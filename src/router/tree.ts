@@ -4,14 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-export const enum NodeType {
-	STATIC = 0,
-	PARAM = 1,
-	WILDCARD = 2,
-}
-
 export interface RadixNode<T> {
-	type: NodeType;
 	segment: string;
 	optional: boolean;
 	children: Map<string, RadixNode<T>>;
@@ -20,9 +13,8 @@ export interface RadixNode<T> {
 	payload: T | null;
 }
 
-export function createNode<T>(type: NodeType, segment: string, optional = false): RadixNode<T> {
+export function createNode<T>(segment: string, optional = false): RadixNode<T> {
 	return {
-		type,
 		segment,
 		optional,
 		children: new Map(),
@@ -96,21 +88,21 @@ export function insertRoute<T>(
 		if (rawSeg.startsWith("*")) {
 			if (!node.wildcardChild) {
 				const name = rawSeg.length > 1 ? rawSeg.slice(1) : "*";
-				node.wildcardChild = createNode(NodeType.WILDCARD, name);
+				node.wildcardChild = createNode(name);
 			}
 			child = node.wildcardChild;
 		} else if (rawSeg.startsWith(":")) {
 			const optional = rawSeg.endsWith("?");
 			const paramName = optional ? rawSeg.slice(1, -1) : rawSeg.slice(1);
 			if (!node.paramChild) {
-				node.paramChild = createNode(NodeType.PARAM, paramName, optional);
+				node.paramChild = createNode(paramName, optional);
 			}
 			child = node.paramChild;
 		} else {
 			const seg = normaliseSegment(rawSeg, caseSensitive);
 			child = node.children.get(seg) ?? null;
 			if (!child) {
-				child = createNode(NodeType.STATIC, seg);
+				child = createNode(seg);
 				node.children.set(seg, child);
 			}
 		}

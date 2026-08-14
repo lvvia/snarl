@@ -13,7 +13,7 @@ import {
 	url,
 } from "../types.ts";
 import { createDispatcher, createEmptyExactTable, createEmptyRouteTable } from "./dispatch.ts";
-import { createNode, insertRoute, NodeType, type RadixNode, type TreeOptions } from "./tree.ts";
+import { createNode, insertRoute, type RadixNode, type TreeOptions } from "./tree.ts";
 import { extractPattern, type Route, type RouteMetadata, type RoutePayload } from "./route.ts";
 import { joinPrefix, mergeSubRouter } from "./group.ts";
 import { resolveRouterConfig, type RouterConfig } from "./config.ts";
@@ -79,7 +79,7 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 	const routes = createEmptyRouteTable();
 	const exactRoutes = createEmptyExactTable();
 	const trees: Record<Method, RadixNode<RoutePayload>> = Object.fromEntries(
-		httpMethods.map((m) => [m, createNode(NodeType.STATIC, "")]),
+		httpMethods.map((m) => [m, createNode("")]),
 	) as Record<Method, RadixNode<RoutePayload>>;
 
 	const middlewares: Middleware[] = [];
