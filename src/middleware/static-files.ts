@@ -4,38 +4,54 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import type { Middleware } from "../context/mod.ts";
-import { getContentType } from "../mime.ts";
-import { extname, join, relative, resolve } from "@std/path";
 import { encodeHex } from "@std/encoding/hex";
+import { contentType } from "@std/media-types";
+import { extname, join, relative, resolve } from "@std/path";
+import type { Middleware } from "../context/mod.ts";
 import { HttpError } from "../errors.ts";
+import { ByteSliceStream } from "@std/streams";
 
-function weakEtag(stat: Deno.FileInfo): string {
+export type CustomContentTypes = Record<string, string>;
+
+export interface StaticFilesOptions {
+	maxAge?: number;
+	immutable?: boolean;
+	index?: string;
+	/**
+	 * `"weak"` (default): `size+mtime` etag
+	 * `"strong"`: SHA-256 content hash, disables streaming
+	 * `false`: no etag
+	 */
+	etag?: boolean | "weak" | "strong";
+	dotfiles?: "allow" | "ignore" | "deny";
+	maxRangeLength?: number;
+	strongEtagThreshold?: number;
+	/** custom content-type overrides extending or replacing `@std/media-types` */
+	customContentTypes?: CustomContentTypes;
+}
+
+function resolveContentType(
+	ext: string,
+	overrides?: CustomContentTypes,
+): string | undefined {
+	if (overrides) {
+		const normalized = ext.toLowerCase();
+		const withoutDot = normalized.startsWith(".") ? normalized.slice(1) : normalized;
+		const withDot = normalized.startsWith(".") ? normalized : `.${normalized}`;
+
+		if (withDot in overrides) return overrides[withDot];
+		if (withoutDot in overrides) return overrides[withoutDot];
+	}
+
+	return contentType(ext);
+}
+
+function computeWeakETag(stat: Deno.FileInfo): string {
 	const mtime = stat.mtime?.getTime() ?? 0;
 	return `W/"${stat.size.toString(16)}-${mtime.toString(16)}"`;
 }
 
-function takeTransform(limit: number): TransformStream<Uint8Array, Uint8Array> {
-	let remaining = limit;
-	return new TransformStream({
-		transform(chunk, controller) {
-			if (remaining <= 0) {
-				controller.terminate();
-				return;
-			}
-			if (chunk.byteLength <= remaining) {
-				controller.enqueue(chunk);
-				remaining -= chunk.byteLength;
-			} else {
-				controller.enqueue(chunk.subarray(0, remaining));
-				remaining = 0;
-				controller.terminate();
-			}
-		},
-	});
-}
-
-async function strongEtag(filepath: string): Promise<string> {
+async function computeStrongETag(filepath: string): Promise<string> {
 	const file = await Deno.readFile(filepath);
 	const digest = await crypto.subtle.digest("SHA-256", file);
 	return encodeHex(digest);
@@ -52,7 +68,10 @@ function parseRangeHeader(
 	const start = parseInt(match[1], 10);
 	const end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
 
-	if (isNaN(start) || isNaN(end) || start < 0 || end < 0 || start > end || start >= fileSize || end >= fileSize) {
+	if (
+		isNaN(start) || isNaN(end) || start < 0 || end < 0 || start > end || start >= fileSize ||
+		end >= fileSize
+	) {
 		return null;
 	}
 	if ((end - start + 1) > maxRangeLength) return null;
@@ -70,20 +89,7 @@ function parseRangeHeader(
  * app.use(staticFiles("uploads", { etag: "strong" })); // content hashing
  * ```
  */
-export function staticFiles(root: string, options: {
-	maxAge?: number;
-	immutable?: boolean;
-	index?: string;
-	/**
-	 * `"weak"` (default): `size+mtime` etag
-	 * `"strong"`: SHA-256 content hash, disables streaming
-	 * `false`: no etag
-	 */
-	etag?: boolean | "weak" | "strong";
-	dotfiles?: "allow" | "ignore" | "deny";
-	maxRangeLength?: number;
-	strongEtagThreshold?: number;
-} = {}): Middleware {
+export function staticFiles(root: string, options: StaticFilesOptions = {}): Middleware {
 	const {
 		maxAge = 3600,
 		immutable = false,
@@ -92,6 +98,7 @@ export function staticFiles(root: string, options: {
 		dotfiles = "ignore",
 		maxRangeLength = 128 * 1024 * 1024,
 		strongEtagThreshold = 1024 * 1024,
+		customContentTypes,
 	} = options;
 
 	const etagMode = etagOption === false ? false : etagOption === true ? "weak" : etagOption;
@@ -125,19 +132,20 @@ export function staticFiles(root: string, options: {
 		}
 
 		const ext = extname(filepath).toLowerCase();
+
 		const headers = new Headers({
-			"Content-Type": getContentType(ext) || "application/octet-stream",
+			"Content-Type": resolveContentType(ext, customContentTypes) ?? "application/octet-stream",
 		});
 
 		if (etagMode) {
 			let tag: string;
 			if (etagMode === "strong" && stat.size <= strongEtagThreshold) {
-				tag = await strongEtag(filepath);
+				tag = await computeStrongETag(filepath);
 			} else {
 				if (etagMode === "strong" && stat.size > strongEtagThreshold) {
-					console.warn("staticFiles", `file ${filepath} is too large for strong etag`);
+					console.warn("staticFiles:", `file ${filepath} is too large for strong etag`);
 				}
-				tag = weakEtag(stat);
+				tag = computeWeakETag(stat);
 			}
 			headers.set("ETag", tag);
 			if (ctx.request.headers.get("If-None-Match") === tag) {
@@ -169,7 +177,10 @@ export function staticFiles(root: string, options: {
 				return next();
 			}
 
-			return new Response(file.readable.pipeThrough(takeTransform(chunkLen)), { status: 206, headers });
+			return new Response(file.readable.pipeThrough(new ByteSliceStream(0, chunkLen - 1)), {
+				status: 206,
+				headers,
+			});
 		}
 
 		if (maxAge > 0 || immutable) {
