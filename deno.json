@@ -34,7 +34,7 @@
 	"compilerOptions": {
 		"jsx": "react-jsx",
 		"jsxImportSource": "@july/snarl",
-		"lib": ["deno.ns", "deno.unstable", "dom", "dom.iterable"]
+		"lib": ["deno.ns", "dom", "dom.iterable"]
 	},
 	"lint": {
 		"rules": {

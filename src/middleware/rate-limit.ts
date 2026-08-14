@@ -112,5 +112,3 @@ export function rateLimit(options: {
 	}
 	return middleware;
 }
-
-export { KvStore } from "./integration/kv.ts";
