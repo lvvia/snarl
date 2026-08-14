@@ -10,7 +10,6 @@ export * from "./middleware/mod.ts";
 export * from "./router/mod.ts";
 export * from "./types.ts";
 export * from "./errors.ts";
-export * from "./mime.ts";
 export * from "./cookie.ts";
 export * from "./stream.ts";
 export * from "./jsx-runtime.ts";
