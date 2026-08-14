@@ -6,6 +6,7 @@
 
 import { abortable } from "@std/async";
 import type { Context } from "./context/mod.ts";
+import { TextLineStream } from "@std/streams";
 
 /**
  * represents a message sent over server-sent events
@@ -105,7 +106,7 @@ export function upgradeWebSocket(
 	}
 }
 
-async function* toUint8Array(source: AsyncIterable<string | Uint8Array>) {
+async function* toUint8Array(source: AsyncIterable<string | ArrayBufferView>) {
 	const encoder = new TextEncoder();
 	for await (const chunk of source) {
 		yield typeof chunk === "string" ? encoder.encode(chunk) : chunk;
@@ -120,8 +121,8 @@ async function* toUint8Array(source: AsyncIterable<string | Uint8Array>) {
 export function stream(
 	ctx: Context,
 	source:
-		| AsyncIterable<string | Uint8Array>
-		| (() => AsyncIterable<string | Uint8Array>),
+		| AsyncIterable<string | ArrayBufferView>
+		| (() => AsyncIterable<string | ArrayBufferView>),
 	init?: ResponseInit,
 ): Response {
 	const iterable = typeof source === "function" ? source() : source;
@@ -130,4 +131,38 @@ export function stream(
 	);
 
 	return new Response(readable, init);
+}
+
+async function* extractData(lines: AsyncIterable<string>) {
+	for await (const line of lines) {
+		if (line.startsWith("data:")) {
+			yield line[5] === " " ? line.slice(6) : line.slice(5);
+		}
+	}
+}
+
+/**
+ * parses a raw SSE byte stream into a stream of data strings
+ *
+ * @param stream the raw byte stream (e.g., `response.body` from a `fetch` request)
+ * @returns a `ReadableStream` yielding the extracted SSE data string payloads
+ *
+ * @example
+ * ```ts
+ * const response = await fetch("https://api.example.com/events");
+ *
+ * if (response.body) {
+ *   const stream = consume(response.body);
+ *   for await (const data of stream) {
+ *     console.log("received event data:", data);
+ *   }
+ * }
+ * ```
+ */
+export function consume(stream: ReadableStream<BufferSource>): ReadableStream<string> {
+	const lines = stream
+		.pipeThrough(new TextDecoderStream())
+		.pipeThrough(new TextLineStream());
+
+	return ReadableStream.from(extractData(lines));
 }
