@@ -1,4 +1,9 @@
 #!/usr/bin/env -S deno run --allow-read
+/**
+ * snarl, a minimal web framework for deno
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: MPL-2.0
+ */
 
 import { expandGlob } from "@std/fs/expand-glob";
 import { dirname, join, relative } from "@std/path";

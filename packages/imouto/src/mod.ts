@@ -9,5 +9,6 @@ export * from "./context.ts";
 export * from "./router/mod.ts";
 export * from "./head.ts";
 export * from "./app.ts";
+export * from "./hash/mod.ts";
 export * from "./jsx-runtime.ts";
 export * from "@404/varnish";
