@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-/// <reference lib="deno.unstable" />
-
 import type { RateLimitStore } from "../rate-limit.ts";
 
 interface KvEntry {
