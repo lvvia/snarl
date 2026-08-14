@@ -18,6 +18,16 @@ import { type BodyReader, createBodyReader } from "./body.ts";
 import { createMultipartReader, type MultipartOptions, type MultipartResult } from "./multipart.ts";
 
 const encoder = new TextEncoder();
+const DOCTYPE_RE = /^\s*<!doctype\b/i;
+
+const JSON_INIT: ResponseInit = { headers: new Headers({ "Content-Type": "application/json" }) };
+const TEXT_INIT: ResponseInit = { headers: new Headers({ "Content-Type": "text/plain; charset=utf-8" }) };
+const HTML_INIT: ResponseInit = { headers: new Headers({ "Content-Type": "text/html; charset=utf-8" }) };
+
+function isDefaultInit(init: ResponseInit | undefined): boolean {
+	return init === undefined ||
+		(init.status === undefined && init.statusText === undefined && init.headers === undefined);
+}
 
 /**
  * the `Context` object represents a single HTTP request/response lifecycle,
@@ -108,7 +118,9 @@ export class Context<Params = Record<string, string>> {
 
 	/** sends a JSON response */
 	json<T>(data: T, init?: ResponseInit): Response {
-		return this.response(JSON.stringify(data), "application/json", init);
+		const body = JSON.stringify(data);
+		if (!this.hasCustomHeaders() && isDefaultInit(init)) return new Response(body, JSON_INIT);
+		return this.response(body, "application/json", init);
 	}
 
 	/** sends an HTML response */
@@ -120,14 +132,16 @@ export class Context<Params = Record<string, string>> {
 	}
 
 	finishHtml(body: string, init?: ResponseInit & { autoDoctype?: boolean }): Response {
-		if (init?.autoDoctype !== false && !body.startsWith("<!")) {
+		if (init?.autoDoctype !== false && !DOCTYPE_RE.test(body)) {
 			body = `<!DOCTYPE html>${body}`;
 		}
+		if (!this.hasCustomHeaders() && isDefaultInit(init)) return new Response(body, HTML_INIT);
 		return this.response(body, "text/html; charset=utf-8", init);
 	}
 
 	/** sends a plain text response */
 	text(content: string, init?: ResponseInit): Response {
+		if (!this.hasCustomHeaders() && isDefaultInit(init)) return new Response(content, TEXT_INIT);
 		return this.response(content, "text/plain; charset=utf-8", init);
 	}
 

@@ -41,11 +41,9 @@ export class MutableResponse {
 	}
 
 	static from(response: Response): MutableResponse {
-		return new MutableResponse(response.body, {
-			status: response.status,
-			statusText: response.statusText,
-			headers: response.headers,
-		});
+		const wrapped = new MutableResponse(response.body, { status: response.status, statusText: response.statusText });
+		wrapped.#headers = response.headers;
+		return wrapped;
 	}
 
 	toResponse(): Response {

@@ -135,7 +135,6 @@ export function createDispatcher(state: DispatchState): {
 	fetch: (request: Request, info: Deno.ServeHandlerInfo<Deno.NetAddr>) => Promise<Response>;
 } {
 	const nextRequestId = createRequestIdGenerator();
-
 	const trailingSlashMode = state.config.trailingSlash;
 	const treeOptions: TreeOptions = {
 		caseSensitive: state.config.caseSensitive,
@@ -145,11 +144,31 @@ export function createDispatcher(state: DispatchState): {
 	const composedCache = new WeakMap<Handler<any>, Handler<any>>();
 	let composedNotFound: Handler<any> | null = null;
 
-	async function fetch(request: Request, info: Deno.ServeHandlerInfo<Deno.NetAddr>): Promise<Response> {
-		composedNotFound ??= state.middlewares.length
-			? compose(state.middlewares, state.config.onNotFound)
-			: state.config.onNotFound;
+	function handlerFor(match: Resolved | null): Handler<any> {
+		if (!match) {
+			return composedNotFound ??= state.middlewares.length
+				? compose(state.middlewares, state.config.onNotFound)
+				: state.config.onNotFound;
+		}
+		if (!state.middlewares.length) return match.route.handler;
 
+		return composedCache.getOrInsertComputed(
+			match.route.handler,
+			() => compose(state.middlewares, match.route.handler),
+		);
+	}
+
+	function finishForMethod(method: Method, response: Response): Response {
+		if (method !== "HEAD" || !response.body) return response;
+		return new Response(null, { status: response.status, statusText: response.statusText, headers: response.headers });
+	}
+
+	function handleError(err: unknown, ctx: Context<any>): Response | Promise<Response> {
+		if (err instanceof HttpError) return ctx.json({ error: err.message }, { status: err.status, headers: err.headers });
+		return state.config.onError(err as Error, ctx);
+	}
+
+	async function fetch(request: Request, info: Deno.ServeHandlerInfo<Deno.NetAddr>): Promise<Response> {
 		const method = request.method.toUpperCase() as Method;
 		const { pathname, search } = extractPathParts(request.url);
 
@@ -169,35 +188,11 @@ export function createDispatcher(state: DispatchState): {
 		try {
 			ctx = new Context(request, pathname, search, info, match?.params ?? EMPTY_PARAMS, nextRequestId);
 
-			let handler: Handler<any>;
-			if (!state.middlewares.length) {
-				handler = match ? match.route.handler : state.config.onNotFound;
-			} else if (!match) {
-				handler = composedNotFound;
-			} else {
-				let cached = composedCache.get(match.route.handler);
-				if (!cached) {
-					composedCache.set(match.route.handler, cached = compose(state.middlewares, match.route.handler));
-				}
-				handler = cached;
-			}
-
-			const response = await handler(ctx);
-
-			if (method === "HEAD" && response?.body) {
-				return new Response(null, {
-					status: response.status,
-					statusText: response.statusText,
-					headers: response.headers,
-				});
-			}
-			return response ?? EMPTY_200;
+			const response = await handlerFor(match)(ctx);
+			return finishForMethod(method, response ?? EMPTY_200);
 		} catch (err) {
 			ctx ??= new Context(request, pathname, search, info, EMPTY_PARAMS, nextRequestId);
-			if (err instanceof HttpError) {
-				return ctx.json({ error: err.message }, { status: err.status, headers: err.headers });
-			}
-			return await state.config.onError(err as Error, ctx);
+			return handleError(err, ctx);
 		}
 	}
 
