@@ -53,8 +53,8 @@ function parseArgs(args: string[]): CliOptions {
 	}
 
 	if (opts.quick) {
-		opts.duration = Math.min(opts.duration, 2);
-		opts.warmup = Math.min(opts.warmup, 1);
+		opts.duration = Math.min(opts.duration, 3);
+		opts.warmup = Math.min(opts.warmup, 2);
 	}
 
 	return opts;
