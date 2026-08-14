@@ -7,9 +7,9 @@
 import { compose, type Middleware } from "../context/middleware.ts";
 import { httpMethods, type Method } from "../types.ts";
 import { insertRoute, type RadixNode, type TreeOptions } from "./tree.ts";
-import { extractPattern, type Route, RouteMetadata, type RoutePayload } from "./route.ts";
-import { Router } from "./factory.ts";
-import { Handler } from "../context/mod.ts";
+import { extractPattern, type Route, type RouteMetadata, type RoutePayload } from "./route.ts";
+import type { Router } from "./factory.ts";
+import type { Handler } from "../context/mod.ts";
 
 export function mergeSubRouter(
 	subRoutes: Record<Method, Route<any>[]>,
