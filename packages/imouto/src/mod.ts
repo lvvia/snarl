@@ -6,7 +6,7 @@
 
 export * from "./css.ts";
 export * from "./context.ts";
-export * from "./router.ts";
+export * from "./router/mod.ts";
 export * from "./head.ts";
 export * from "./app.ts";
 export * from "./jsx-runtime.ts";

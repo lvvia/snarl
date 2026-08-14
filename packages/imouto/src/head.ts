@@ -6,6 +6,7 @@
 
 import { Context, Fragment, JSX, jsx, jsxAttr, Middleware, renderToString } from "@july/snarl";
 import { requireContext } from "./mod.ts";
+import { splitDoctype } from "@404/varnish";
 
 const HEAD_RE = /(<head(?:\s[^>]*)?>)/i;
 const BODY_RE = /(<body(?:\s[^>]*)?>)/i;
@@ -91,16 +92,12 @@ function renderHeadAttributes(attrs: Record<string, string>): string {
 
 export function injectIntoHead(input: string, content?: string, attrs?: Record<string, string>): string {
 	if (!content && !attrs) return input;
-
 	const attrs$stringified = attrs ? renderHeadAttributes(attrs) : "";
 
 	if (HEAD_RE.test(input)) {
 		input = input.replace(HEAD_RE, (match) => {
 			const existing = match.match(/<head(?:\s([^>]*))?>/i);
-			if (existing && existing[1].trim()) {
-				return match;
-			}
-			return `<head${attrs$stringified}>`;
+			return existing && existing[1].trim() ? match : `<head${attrs$stringified}>`;
 		});
 		return content ? input.replace(HEAD_RE, `$1${content}`) : input;
 	}
@@ -108,7 +105,9 @@ export function injectIntoHead(input: string, content?: string, attrs?: Record<s
 	if (BODY_RE.test(input)) {
 		return input.replace(BODY_RE, `<head${attrs$stringified}>${content ?? ""}</head>$1`);
 	}
-	return `<head${attrs$stringified}>${content ?? ""}</head>${input}`;
+
+	const { doctype, rest } = splitDoctype(input);
+	return `${doctype}<head${attrs$stringified}>${content ?? ""}</head>${rest}`;
 }
 
 export function Head({ children, ...attrs }: { children?: any; [key: string]: any }): null {

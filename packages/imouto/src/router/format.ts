@@ -1,0 +1,26 @@
+/**
+ * snarl, a minimal web framework for deno
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+import { blue, cyan, dim, green, magenta, red, yellow } from "@std/fmt/colors";
+import type { Method } from "@july/snarl";
+
+const METHOD_COLOURS: Record<Method, typeof dim> = {
+	GET: green,
+	POST: yellow,
+	PUT: blue,
+	PATCH: magenta,
+	DELETE: red,
+	HEAD: dim,
+	OPTIONS: cyan,
+};
+
+export const methodColour = (method: Method) => METHOD_COLOURS[method] ?? dim;
+
+export function formatRoute(method: Method, path: string): string {
+	return `${methodColour(method)(method.padEnd(7))} ${dim("→")} ${cyan(path)}`;
+}
+
+export const formatRouteFile = (path: string): string => dim(`(${path})`);
