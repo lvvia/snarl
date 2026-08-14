@@ -5,6 +5,7 @@
  */
 
 import { chain, Context, Middleware } from "@july/snarl";
+import { splitDoctype } from "./html.ts";
 
 /** hash -> compiled scoped CSS content, populated at module load time */
 export const styleRegistry: Map<string, string> = new Map();
@@ -54,15 +55,14 @@ export function injectScopedStylesheet(ctx: Context, input: string): string | un
 	if (!used?.size) return;
 
 	let links = "";
-	for (const hash of used) {
-		links += `<link rel="stylesheet" href="/_css/${hash}.css">`;
-	}
+	for (const hash of used) links += `<link rel="stylesheet" href="/_css/${hash}.css">`;
 
 	const headClose = "</head>";
 	const idx = input.indexOf(headClose);
-	if (idx === -1) return links + input;
+	if (idx !== -1) return input.slice(0, idx) + links + headClose + input.slice(idx + headClose.length);
 
-	return input.slice(0, idx) + links + headClose + input.slice(idx + headClose.length);
+	const { doctype, rest } = splitDoctype(input);
+	return doctype + links + rest;
 }
 
 /**

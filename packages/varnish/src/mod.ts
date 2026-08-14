@@ -5,5 +5,6 @@
  */
 
 export { minify, type MinifyOptions } from "./minify.ts";
+export { splitDoctype } from "./html.ts";
 export * from "./scope.ts";
 export * from "./css.ts";
