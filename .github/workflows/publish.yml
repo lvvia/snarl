@@ -51,19 +51,26 @@ jobs:
       fail-fast: false
       matrix:
         package: ${{ fromJson(needs.discover.outputs.packages) }}
-    if: |
-      github.event_name == 'push' ||
-      github.event.inputs.package == 'all' ||
-      matrix.package.name == github.event.inputs.package ||
-      endsWith(matrix.package.name, concat('/', github.event.inputs.package))
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v7
+
       - uses: denoland/setup-deno@v2
+        if: |
+          github.event_name == 'push' ||
+          github.event.inputs.package == 'all' ||
+          matrix.package.name == github.event.inputs.package ||
+          endsWith(matrix.package.name, format('/{0}', github.event.inputs.package))
         with:
           deno-version: v2.x
+
       - name: Publish ${{ matrix.package.name }}
+        if: |
+          github.event_name == 'push' ||
+          github.event.inputs.package == 'all' ||
+          matrix.package.name == github.event.inputs.package ||
+          endsWith(matrix.package.name, format('/{0}', github.event.inputs.package))
         working-directory: ${{ matrix.package.path }}
         run: deno publish
