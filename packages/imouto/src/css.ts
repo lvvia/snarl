@@ -8,7 +8,7 @@ import { jsx } from "@july/snarl/jsx-runtime";
 import type { Context, JSX } from "@july/snarl";
 import { markStyleUsed, scopeCss, styleRegistry } from "@404/varnish";
 import { getContext } from "./context.ts";
-import meowmix0 from "./meowmix0.ts";
+import { boring } from "./hash/mod.ts";
 
 export interface Css {
 	/**
@@ -174,7 +174,7 @@ export interface CssTag {
 	(strings: TemplateStringsArray, ...values: unknown[]): ScopedStyleSheet;
 }
 
-export function createStyles(config: CssConfig = { hash: meowmix0 }): { css: CssTag; styled: StyledFactory } {
+export function createStyles(config: CssConfig = { hash: boring }): { css: CssTag; styled: StyledFactory } {
 	function cssTag(strings: TemplateStringsArray, ...values: unknown[]): ScopedStyleSheet {
 		const src = strings.reduce<string>(
 			(acc, str, i) => acc + str + (values[i] ?? ""),
