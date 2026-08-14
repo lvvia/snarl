@@ -219,7 +219,7 @@ export class Context<Params = Record<string, string>> {
 	is<T extends string>(type: T | T[]): this is Context & {
 		request: Request & { headers: Headers & { get(name: "content-type"): T } };
 	} {
-		const kind = this.request.headers.get("Content-Type");
+		const kind = this.request.headers.get("content-type");
 		if (!kind) return false;
 
 		return Array.isArray(type) ? type.some((t) => kind.includes(t)) : kind.includes(type);

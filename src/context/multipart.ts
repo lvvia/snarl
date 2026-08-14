@@ -1,36 +1,11 @@
-/**
- * snarl, a minimal web framework for deno
- * Copyright (c) 2025-2026 kyu.re
- * SPDX-License-Identifier: MPL-2.0
- */
-
+import { LimitedBytesTransformStream } from "@std/streams";
 import { HttpError } from "../errors.ts";
 
-/** represents a file uploaded via `multipart/form-data` */
-export interface UploadedFile {
-	/** the field name in the form */
-	name: string;
-	/** the filename provided by the client */
-	filename: string;
-	/** the MIME type provided by the client */
-	type: string;
-	/** the size of the file in bytes */
-	size: number;
-	/** the raw file content */
-	content: Uint8Array;
-}
-
 export interface MultipartOptions {
-	/**
-	 * reject any single file whose declared size exceeds this, in bytes.
-	 * unlimited by default
-	 */
-	maxFileSize?: number;
-	/**
-	 * reject the whole request if the sum of all file sizes exceeds this,
-	 * in bytes. unlimited by default
-	 */
+	/** maximum total size in bytes for the entire multipart payload. defaults to 10 MB */
 	maxTotalSize?: number;
+	/** maximum allowed size per file in bytes. checked after parsing */
+	maxFileSize?: number;
 }
 
 export interface MultipartResult {
@@ -38,52 +13,64 @@ export interface MultipartResult {
 	files: Record<string, UploadedFile>;
 }
 
+export interface UploadedFile {
+	name: string;
+	filename: string;
+	type: string;
+	size: number;
+	content: Uint8Array;
+}
+
 /**
- * parses a request as `multipart/form-data`
+ * Parses multipart form data from a request with a total size limit.
+ *
  * @example
  * ```ts
- * app.post("/upload", async (ctx) => {
- *   const { files } = await ctx.multipart({ maxFileSize: 10 * 1024 * 1024 });
- *   console.log(`Received ${files.avatar.filename}`);
- * });
+ * const { fields, files } = await createMultipartReader(request, { maxTotalSize: 5 * 1024 * 1024 });
  * ```
  */
 export async function createMultipartReader(
 	request: Request,
 	options: MultipartOptions = {},
 ): Promise<MultipartResult> {
-	const declaredLength = Number(request.headers.get("Content-Length"));
-	if (
-		options.maxTotalSize && Number.isFinite(declaredLength) && declaredLength > options.maxTotalSize
-	) {
-		throw new HttpError(413, "Payload Too Large");
-	}
+	const { maxTotalSize = 10_485_760 } = options;
 
-	const formData = await request.formData();
+	const body = request.body?.pipeThrough(
+		new LimitedBytesTransformStream(maxTotalSize, { error: true }),
+	);
+	const req = new Request(request, { body });
+
+	try {
+		const form = await req.formData();
+		return await parseFormData(form, options.maxFileSize);
+	} catch (error: any) {
+		if (error instanceof RangeError && error.message.includes("exceeds size limit")) {
+			throw new HttpError(413, `Payload exceeds the ${maxTotalSize}-byte limit`);
+		}
+		const message = "message" in error ? error.message : String(error);
+		throw new HttpError(400, `Failed to parse multipart data: ${message}`);
+	}
+}
+
+/**
+ * Extracts fields and files from a `FormData` object.
+ */
+async function parseFormData(formData: FormData, maxFileSize?: number): Promise<MultipartResult> {
 	const fields: Record<string, string> = {};
 	const files: Record<string, UploadedFile> = {};
-	let total = 0;
 
 	for (const [name, value] of formData.entries()) {
 		if (value instanceof File) {
-			if (options.maxFileSize && value.size > options.maxFileSize) {
-				throw new HttpError(
-					413,
-					`File "${value.name}" exceeds the ${options.maxFileSize}-byte limit`,
-				);
+			if (maxFileSize && value.size > maxFileSize) {
+				throw new HttpError(413, `File "${value.name}" exceeds the ${maxFileSize}-byte limit`);
 			}
-
-			total += value.size;
-			if (options.maxTotalSize && total > options.maxTotalSize) {
-				throw new HttpError(413, "Payload Too Large");
-			}
-
+			const content = new Uint8Array(await value.arrayBuffer());
 			files[name] = {
 				name,
 				filename: value.name,
-				type: value.type,
+				type: value.type || "application/octet-stream",
 				size: value.size,
-				content: new Uint8Array(await value.arrayBuffer()),
+				content,
 			};
 		} else {
 			fields[name] = value;
