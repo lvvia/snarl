@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+import { abortable } from "@std/async";
 import type { Context } from "./context/mod.ts";
 
 /**
@@ -20,41 +21,19 @@ export interface SSEMessage {
 	retry?: number;
 }
 
-function abortableStream<T>(
-	ctx: Context,
-	iterable: AsyncIterable<T>,
-	onChunk: (controller: ReadableStreamDefaultController<Uint8Array>, value: T) => void,
-): ReadableStream<Uint8Array> {
-	return new ReadableStream({
-		async start(controller) {
-			let closed = false;
-			const iterator = iterable[Symbol.asyncIterator]();
+async function* formatSSE(messages: AsyncIterable<SSEMessage> | Iterable<SSEMessage>) {
+	const encoder = new TextEncoder();
 
-			const onAbort = () => {
-				closed = true;
-				try {
-					controller.close();
-				} catch { /* no-op */ }
-			};
-			ctx.request.signal.addEventListener("abort", onAbort);
+	for await (const msg of messages) {
+		let chunk = "";
+		if (msg.event) chunk += `event: ${msg.event}\n`;
+		if (msg.id) chunk += `id: ${msg.id}\n`;
+		if (msg.retry) chunk += `retry: ${msg.retry}\n`;
+		for (const line of msg.data.split("\n")) chunk += `data: ${line}\n`;
+		chunk += "\n";
 
-			try {
-				while (!closed && !ctx.request.signal.aborted) {
-					const { done, value } = await iterator.next();
-					if (done) break;
-					onChunk(controller, value);
-				}
-				if (!closed) controller.close();
-			} catch (error) {
-				if (!closed) controller.error(error);
-			} finally {
-				ctx.request.signal.removeEventListener("abort", onAbort);
-				try {
-					await iterator.return?.(undefined);
-				} catch { /* no-op */ }
-			}
-		},
-	});
+		yield encoder.encode(chunk);
+	}
 }
 
 /**
@@ -68,22 +47,10 @@ export function sse(
 	source: AsyncIterable<SSEMessage> | (() => AsyncIterable<SSEMessage>),
 	init?: ResponseInit,
 ): Response {
-	const encoder = new TextEncoder();
 	const iterable = typeof source === "function" ? source() : source;
-
-	const stream = abortableStream(ctx, iterable, (controller, message) => {
-		let chunk = "";
-		if (message.event) chunk += `event: ${message.event}\n`;
-		if (message.id) chunk += `id: ${message.id}\n`;
-		if (message.retry) chunk += `retry: ${message.retry}\n`;
-
-		for (const line of message.data.split("\n")) {
-			chunk += `data: ${line}\n`;
-		}
-		chunk += "\n";
-
-		controller.enqueue(encoder.encode(chunk));
-	});
+	const stream = ReadableStream.from(
+		abortable(formatSSE(iterable), ctx.request.signal),
+	);
 
 	return new Response(stream, {
 		...init,
@@ -117,39 +84,32 @@ export function upgradeWebSocket(
 ): Response {
 	const upgrade = ctx.request.headers.get("upgrade")?.toLowerCase();
 
-	if (upgrade !== "websocket") {
+	if (!upgrade?.includes("websocket")) {
 		return new Response("expected websocket upgrade", {
 			status: 426,
-			headers: {
-				"Upgrade": "websocket",
-			},
+			headers: { "Upgrade": "websocket" },
 		});
 	}
 
-	const { socket, response } = Deno.upgradeWebSocket(ctx.request);
+	try {
+		const { socket, response } = Deno.upgradeWebSocket(ctx.request);
 
-	if (handler.onOpen) {
-		socket.addEventListener("open", () => {
-			handler.onOpen!(socket);
-		});
-	}
-	if (handler.onMessage) {
-		socket.addEventListener("message", (event) => {
-			handler.onMessage!(socket, event);
-		});
-	}
-	if (handler.onClose) {
-		socket.addEventListener("close", (event) => {
-			handler.onClose!(socket, event);
-		});
-	}
-	if (handler.onError) {
-		socket.addEventListener("error", (event) => {
-			handler.onError!(socket, event);
-		});
-	}
+		if (handler.onOpen) socket.onopen = () => handler.onOpen?.(socket);
+		if (handler.onMessage) socket.onmessage = (event) => handler.onMessage?.(socket, event);
+		if (handler.onClose) socket.onclose = (event) => handler.onClose?.(socket, event);
+		if (handler.onError) socket.onerror = (event) => handler.onError?.(socket, event);
 
-	return response;
+		return response;
+	} catch {
+		return new Response("Failed to upgrade WebSocket connection", { status: 400 });
+	}
+}
+
+async function* toUint8Array(source: AsyncIterable<string | Uint8Array>) {
+	const encoder = new TextEncoder();
+	for await (const chunk of source) {
+		yield typeof chunk === "string" ? encoder.encode(chunk) : chunk;
+	}
 }
 
 /**
@@ -159,15 +119,15 @@ export function upgradeWebSocket(
  */
 export function stream(
 	ctx: Context,
-	source: AsyncIterable<Uint8Array> | (() => AsyncIterable<Uint8Array>),
+	source:
+		| AsyncIterable<string | Uint8Array>
+		| (() => AsyncIterable<string | Uint8Array>),
 	init?: ResponseInit,
 ): Response {
-	const encoder = new TextEncoder();
 	const iterable = typeof source === "function" ? source() : source;
-
-	const readable = abortableStream(ctx, iterable, (controller, chunk) => {
-		controller.enqueue(typeof chunk === "string" ? encoder.encode(chunk) : chunk);
-	});
+	const readable = ReadableStream.from(
+		abortable(toUint8Array(iterable), ctx.request.signal),
+	);
 
 	return new Response(readable, init);
 }
