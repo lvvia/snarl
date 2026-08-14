@@ -41,14 +41,23 @@ export class MutableResponse {
 	}
 
 	static from(response: Response): MutableResponse {
-		const wrapped = new MutableResponse(response.body, { status: response.status, statusText: response.statusText });
+		const wrapped = new MutableResponse(response.body, {
+			status: response.status,
+			statusText: response.statusText,
+		});
 		wrapped.#headers = response.headers;
 		return wrapped;
 	}
 
 	toResponse(): Response {
-		const body = isFreshBody(this.body) ? this.body : (this.#bytesCache ?? this.#textCache ?? this.body);
-		return new Response(body, { status: this.status, statusText: this.statusText, headers: this.#headers });
+		const body = isFreshBody(this.body)
+			? this.body
+			: (this.#bytesCache ?? this.#textCache ?? this.body);
+		return new Response(body, {
+			status: this.status,
+			statusText: this.statusText,
+			headers: this.#headers,
+		});
 	}
 
 	get headers(): Headers {

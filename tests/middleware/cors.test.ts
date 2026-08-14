@@ -65,7 +65,10 @@ Deno.test("cors middleware", async (t) => {
 			mockInfo,
 		);
 		assertEquals(res.status, 204);
-		assertEquals(res.headers.get("Access-Control-Allow-Methods"), "GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS");
+		assertEquals(
+			res.headers.get("Access-Control-Allow-Methods"),
+			"GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS",
+		);
 		assertEquals(res.headers.get("Access-Control-Max-Age"), "3600");
 	});
 

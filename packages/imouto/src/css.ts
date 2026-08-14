@@ -174,7 +174,9 @@ export interface CssTag {
 	(strings: TemplateStringsArray, ...values: unknown[]): ScopedStyleSheet;
 }
 
-export function createStyles(config: CssConfig = { hash: boring }): { css: CssTag; styled: StyledFactory } {
+export function createStyles(
+	config: CssConfig = { hash: boring },
+): { css: CssTag; styled: StyledFactory } {
 	function cssTag(strings: TemplateStringsArray, ...values: unknown[]): ScopedStyleSheet {
 		const src = strings.reduce<string>(
 			(acc, str, i) => acc + str + (values[i] ?? ""),

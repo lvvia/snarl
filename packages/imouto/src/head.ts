@@ -90,7 +90,11 @@ function renderHeadAttributes(attrs: Record<string, string>): string {
 	return result ? ` ${result}` : result;
 }
 
-export function injectIntoHead(input: string, content?: string, attrs?: Record<string, string>): string {
+export function injectIntoHead(
+	input: string,
+	content?: string,
+	attrs?: Record<string, string>,
+): string {
 	if (!content && !attrs) return input;
 	const attrs$stringified = attrs ? renderHeadAttributes(attrs) : "";
 
@@ -132,7 +136,9 @@ export function collectHeadContent(ctx: Context): {
 		return;
 	}
 
-	const content = store && store.size > 0 ? renderHeadContent(Array.from(store.values(), (e) => e.node)) : undefined;
+	const content = store && store.size > 0
+		? renderHeadContent(Array.from(store.values(), (e) => e.node))
+		: undefined;
 	return { content, attrs };
 }
 

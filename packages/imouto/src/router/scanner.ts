@@ -37,7 +37,9 @@ async function importRoute(base: string, file: string, verbose: boolean): Promis
 	const start = performance.now();
 	const module = await import(toFileUrl(file).href);
 
-	if (verbose) console.log(dim(`  ↓ imported ${rel} in ${(performance.now() - start).toFixed(2)}ms`));
+	if (verbose) {
+		console.log(dim(`  ↓ imported ${rel} in ${(performance.now() - start).toFixed(2)}ms`));
+	}
 	return { path: makeRoutePath(rel), fsPath: file, module, depth: rel.split("/").length - 1 };
 }
 

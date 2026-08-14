@@ -7,7 +7,13 @@
 import { compose, Context, type Handler, type Middleware } from "../context/mod.ts";
 import { httpMethods, type Method } from "../types.ts";
 import { HttpError } from "../errors.ts";
-import { canPossiblyMatch, getSegments, matchRoute, type RadixNode, type TreeOptions } from "./tree.ts";
+import {
+	canPossiblyMatch,
+	getSegments,
+	matchRoute,
+	type RadixNode,
+	type TreeOptions,
+} from "./tree.ts";
 import type { Route, RoutePayload } from "./route.ts";
 import type { RouterConfig } from "./config.ts";
 
@@ -112,7 +118,9 @@ function lookupMethod(
 		if (!canPossiblyMatch(trees[method], firstSegment, caseSensitive)) return null;
 	}
 
-	const segments = pathname === "/" ? [] : getSegments(pathname, treeOptions.trailingSlashSensitive ?? false);
+	const segments = pathname === "/"
+		? []
+		: getSegments(pathname, treeOptions.trailingSlashSensitive ?? false);
 	const params: Record<string, string> = Object.create(null);
 	const result = matchRoute(trees[method], segments, 0, params, treeOptions);
 
@@ -160,20 +168,31 @@ export function createDispatcher(state: DispatchState): {
 
 	function finishForMethod(method: Method, response: Response): Response {
 		if (method !== "HEAD" || !response.body) return response;
-		return new Response(null, { status: response.status, statusText: response.statusText, headers: response.headers });
+		return new Response(null, {
+			status: response.status,
+			statusText: response.statusText,
+			headers: response.headers,
+		});
 	}
 
 	function handleError(err: unknown, ctx: Context<any>): Response | Promise<Response> {
-		if (err instanceof HttpError) return ctx.json({ error: err.message }, { status: err.status, headers: err.headers });
+		if (err instanceof HttpError) {
+			return ctx.json({ error: err.message }, { status: err.status, headers: err.headers });
+		}
 		return state.config.onError(err as Error, ctx);
 	}
 
-	async function fetch(request: Request, info: Deno.ServeHandlerInfo<Deno.NetAddr>): Promise<Response> {
+	async function fetch(
+		request: Request,
+		info: Deno.ServeHandlerInfo<Deno.NetAddr>,
+	): Promise<Response> {
 		const method = request.method.toUpperCase() as Method;
 		const { pathname, search } = extractPathParts(request.url);
 
 		const trailing = hasTrailingSlash(pathname);
-		const lookupPathname = trailing && trailingSlashMode !== "strict" ? pathname.slice(0, -1) : pathname;
+		const lookupPathname = trailing && trailingSlashMode !== "strict"
+			? pathname.slice(0, -1)
+			: pathname;
 
 		const match = resolve(state, treeOptions, method, lookupPathname);
 
@@ -186,7 +205,14 @@ export function createDispatcher(state: DispatchState): {
 
 		let ctx: Context<any> | null = null;
 		try {
-			ctx = new Context(request, pathname, search, info, match?.params ?? EMPTY_PARAMS, nextRequestId);
+			ctx = new Context(
+				request,
+				pathname,
+				search,
+				info,
+				match?.params ?? EMPTY_PARAMS,
+				nextRequestId,
+			);
 
 			const response = await handlerFor(match)(ctx);
 			return finishForMethod(method, response ?? EMPTY_200);
@@ -204,5 +230,8 @@ export function createEmptyRouteTable(): Record<Method, Route<any>[]> {
 }
 
 export function createEmptyExactTable(): Record<Method, Record<string, Route<any>>> {
-	return Object.fromEntries(httpMethods.map((m) => [m, {}])) as Record<Method, Record<string, Route<any>>>;
+	return Object.fromEntries(httpMethods.map((m) => [m, {}])) as Record<
+		Method,
+		Record<string, Route<any>>
+	>;
 }

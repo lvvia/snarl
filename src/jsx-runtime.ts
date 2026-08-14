@@ -48,7 +48,15 @@ interface JsxElement {
 
 type JsxComponent<P extends JSX.Props = JSX.Props> = (props: P) => JSX.Node;
 
-type JsxNode = string | number | boolean | null | undefined | JsxElement | JsxNode[] | Promise<JsxNode>;
+type JsxNode =
+	| string
+	| number
+	| boolean
+	| null
+	| undefined
+	| JsxElement
+	| JsxNode[]
+	| Promise<JsxNode>;
 
 interface JsxProps {
 	children?: JSX.Node | JSX.Node[];
@@ -232,7 +240,10 @@ export function jsxTemplate(
  * @param props the attributes and children of the element
  * @returns either the rendered html string or a `Promise` resolving to one
  */
-export function jsx<P extends JSX.Props = JSX.Props>(tag: JSX.Element["tag"], props: P | null = {} as P): JSX.Element {
+export function jsx<P extends JSX.Props = JSX.Props>(
+	tag: JSX.Element["tag"],
+	props: P | null = {} as P,
+): JSX.Element {
 	const el = Object.create(prototype);
 	el.tag = tag;
 	el.props = props ?? {};

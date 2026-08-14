@@ -47,9 +47,14 @@ function wireNotFound(router: Router, rootMeta: RootRouteMetadata | undefined): 
  * await scanRoutes(app, { dir: "./routes", from: import.meta.url });
  * ```
  */
-export async function scanRoutes(router: Router, options: ScanOptions | string = "./routes"): Promise<void> {
+export async function scanRoutes(
+	router: Router,
+	options: ScanOptions | string = "./routes",
+): Promise<void> {
 	const opts = typeof options === "string" ? { dir: options } : options;
-	const base = opts.from ? join(dirname(fromFileUrl(opts.from)), opts.dir) : join(Deno.cwd(), opts.dir);
+	const base = opts.from
+		? join(dirname(fromFileUrl(opts.from)), opts.dir)
+		: join(Deno.cwd(), opts.dir);
 	const verbose = opts.verbose ?? Deno.env.get("ENV") !== "production";
 
 	const entries: ScanEntry[] = [];
@@ -92,6 +97,12 @@ export async function scanRoutes(router: Router, options: ScanOptions | string =
 	}
 
 	if (verbose) {
-		console.log(dim(`\n  ${registered.size} routes registered in ${(performance.now() - scanStart).toFixed(2)}ms\n`));
+		console.log(
+			dim(
+				`\n  ${registered.size} routes registered in ${
+					(performance.now() - scanStart).toFixed(2)
+				}ms\n`,
+			),
+		);
 	}
 }

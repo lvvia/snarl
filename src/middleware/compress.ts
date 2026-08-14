@@ -81,7 +81,9 @@ export function compress(options: CompressOptions = {}): Middleware {
 		state.headers.set("Content-Encoding", encoding);
 		state.headers.set(
 			"Vary",
-			state.headers.has("Vary") ? `${state.headers.get("Vary")}, Accept-Encoding` : "Accept-Encoding",
+			state.headers.has("Vary")
+				? `${state.headers.get("Vary")}, Accept-Encoding`
+				: "Accept-Encoding",
 		);
 		state.headers.delete("Content-Length");
 

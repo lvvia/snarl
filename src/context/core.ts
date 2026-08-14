@@ -21,8 +21,12 @@ const encoder = new TextEncoder();
 const DOCTYPE_RE = /^\s*<!doctype\b/i;
 
 const JSON_INIT: ResponseInit = { headers: new Headers({ "Content-Type": "application/json" }) };
-const TEXT_INIT: ResponseInit = { headers: new Headers({ "Content-Type": "text/plain; charset=utf-8" }) };
-const HTML_INIT: ResponseInit = { headers: new Headers({ "Content-Type": "text/html; charset=utf-8" }) };
+const TEXT_INIT: ResponseInit = {
+	headers: new Headers({ "Content-Type": "text/plain; charset=utf-8" }),
+};
+const HTML_INIT: ResponseInit = {
+	headers: new Headers({ "Content-Type": "text/html; charset=utf-8" }),
+};
 
 function isDefaultInit(init: ResponseInit | undefined): boolean {
 	return init === undefined ||
@@ -124,7 +128,10 @@ export class Context<Params = Record<string, string>> {
 	}
 
 	/** sends an HTML response */
-	html(content: JSX.Node, init?: ResponseInit & { autoDoctype?: boolean }): Response | Promise<Response> {
+	html(
+		content: JSX.Node,
+		init?: ResponseInit & { autoDoctype?: boolean },
+	): Response | Promise<Response> {
 		const body = isJsxElement(content) ? renderToString(content) : content as string;
 
 		if (typeof body === "string") return this.finishHtml(body, init);
@@ -222,7 +229,10 @@ export class Context<Params = Record<string, string>> {
 	response(data: BodyInit | null, contentType: string | null, init?: ResponseInit): Response {
 		if (!this.hasCustomHeaders()) {
 			if (init === undefined) {
-				return new Response(data, contentType ? { headers: { "Content-Type": contentType } } : undefined);
+				return new Response(
+					data,
+					contentType ? { headers: { "Content-Type": contentType } } : undefined,
+				);
 			}
 			return new Response(data, {
 				...init,

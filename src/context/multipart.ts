@@ -53,7 +53,9 @@ export async function createMultipartReader(
 	options: MultipartOptions = {},
 ): Promise<MultipartResult> {
 	const declaredLength = Number(request.headers.get("Content-Length"));
-	if (options.maxTotalSize && Number.isFinite(declaredLength) && declaredLength > options.maxTotalSize) {
+	if (
+		options.maxTotalSize && Number.isFinite(declaredLength) && declaredLength > options.maxTotalSize
+	) {
 		throw new HttpError(413, "Payload Too Large");
 	}
 
@@ -65,7 +67,10 @@ export async function createMultipartReader(
 	for (const [name, value] of formData.entries()) {
 		if (value instanceof File) {
 			if (options.maxFileSize && value.size > options.maxFileSize) {
-				throw new HttpError(413, `File "${value.name}" exceeds the ${options.maxFileSize}-byte limit`);
+				throw new HttpError(
+					413,
+					`File "${value.name}" exceeds the ${options.maxFileSize}-byte limit`,
+				);
 			}
 
 			total += value.size;

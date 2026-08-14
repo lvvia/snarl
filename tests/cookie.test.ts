@@ -52,17 +52,29 @@ Deno.test("cookie: serializeCookie", async (t) => {
 
 	await t.step("sets expires", () => {
 		const date = new Date("2026-01-01T00:00:00Z");
-		const result = serializeCookie("session", "abc123", { expires: date, secure: false, httpOnly: false });
+		const result = serializeCookie("session", "abc123", {
+			expires: date,
+			secure: false,
+			httpOnly: false,
+		});
 		assertEquals(result.includes("Expires=Thu, 01 Jan 2026"), true);
 	});
 
 	await t.step("sets domain", () => {
-		const result = serializeCookie("session", "abc123", { domain: "example.com", secure: false, httpOnly: false });
+		const result = serializeCookie("session", "abc123", {
+			domain: "example.com",
+			secure: false,
+			httpOnly: false,
+		});
 		assertEquals(result.includes("Domain=example.com"), true);
 	});
 
 	await t.step("sets path", () => {
-		const result = serializeCookie("session", "abc123", { path: "/api", secure: false, httpOnly: false });
+		const result = serializeCookie("session", "abc123", {
+			path: "/api",
+			secure: false,
+			httpOnly: false,
+		});
 		assertEquals(result.includes("Path=/api"), true);
 	});
 

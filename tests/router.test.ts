@@ -28,8 +28,14 @@ Deno.test("router: static routes", async (t) => {
 		router.get("/users", (ctx) => ctx.json({ t: "plural" }));
 		router.get("/user/profile", (ctx) => ctx.json({ t: "profile" }));
 
-		assertEquals(await (await router.fetch(new Request("http://localhost/user"), mockInfo)).json(), { t: "single" });
-		assertEquals(await (await router.fetch(new Request("http://localhost/users"), mockInfo)).json(), { t: "plural" });
+		assertEquals(
+			await (await router.fetch(new Request("http://localhost/user"), mockInfo)).json(),
+			{ t: "single" },
+		);
+		assertEquals(
+			await (await router.fetch(new Request("http://localhost/users"), mockInfo)).json(),
+			{ t: "plural" },
+		);
 		assertEquals(
 			await (await router.fetch(new Request("http://localhost/user/profile"), mockInfo)).json(),
 			{ t: "profile" },
@@ -40,8 +46,14 @@ Deno.test("router: static routes", async (t) => {
 		const router = createRouter();
 		router.get("/api/users", (ctx) => ctx.json({ ok: true }));
 
-		assertEquals((await router.fetch(new Request("http://localhost/api/users"), mockInfo)).status, 200);
-		assertEquals((await router.fetch(new Request("http://localhost/api/users/"), mockInfo)).status, 200);
+		assertEquals(
+			(await router.fetch(new Request("http://localhost/api/users"), mockInfo)).status,
+			200,
+		);
+		assertEquals(
+			(await router.fetch(new Request("http://localhost/api/users/"), mockInfo)).status,
+			200,
+		);
 	});
 
 	await t.step("handles root path", async () => {
@@ -69,7 +81,10 @@ Deno.test("router: dynamic parameters", async (t) => {
 
 	await t.step("extracts multiple params", async () => {
 		const router = createRouter();
-		router.get("/cats/:feline/meow/:mrrp", (ctx) => ctx.json({ feline: ctx.params.feline, mrrp: ctx.params.mrrp }));
+		router.get(
+			"/cats/:feline/meow/:mrrp",
+			(ctx) => ctx.json({ feline: ctx.params.feline, mrrp: ctx.params.mrrp }),
+		);
 		const res = await router.fetch(new Request("http://localhost/cats/123/meow/456"), mockInfo);
 		assertEquals(await res.json(), { feline: "123", mrrp: "456" });
 	});
@@ -123,7 +138,10 @@ Deno.test("router: optional parameters", async (t) => {
 
 	await t.step("optional param in middle of path", async () => {
 		const router = createRouter();
-		router.get("/users/:id?/posts", (ctx) => ctx.json({ id: ctx.params.id ?? "all", page: "posts" }));
+		router.get(
+			"/users/:id?/posts",
+			(ctx) => ctx.json({ id: ctx.params.id ?? "all", page: "posts" }),
+		);
 
 		let res = await router.fetch(new Request("http://localhost/users/42/posts"), mockInfo);
 		assertEquals(await res.json(), { id: "42", page: "posts" });
@@ -134,7 +152,10 @@ Deno.test("router: optional parameters", async (t) => {
 
 	await t.step("multiple optional params", async () => {
 		const router = createRouter();
-		router.get("/a/:b?/:c?", (ctx) => ctx.json({ b: ctx.params.b ?? null, c: ctx.params.c ?? null }));
+		router.get(
+			"/a/:b?/:c?",
+			(ctx) => ctx.json({ b: ctx.params.b ?? null, c: ctx.params.c ?? null }),
+		);
 
 		assertEquals(
 			await (await router.fetch(new Request("http://localhost/a/x/y"), mockInfo)).json(),
@@ -155,7 +176,10 @@ Deno.test("router: wildcard routes", async (t) => {
 	await t.step("captures remaining path segments", async () => {
 		const router = createRouter();
 		router.get("/files/*", (ctx) => ctx.json({ path: ctx.params["*"] }));
-		const res = await router.fetch(new Request("http://localhost/files/docs/api/readme.md"), mockInfo);
+		const res = await router.fetch(
+			new Request("http://localhost/files/docs/api/readme.md"),
+			mockInfo,
+		);
 		assertEquals(await res.json(), { path: "docs/api/readme.md" });
 	});
 
@@ -169,7 +193,10 @@ Deno.test("router: wildcard routes", async (t) => {
 	await t.step("named wildcard", async () => {
 		const router = createRouter();
 		router.get("/assets/*path", (ctx) => ctx.json({ path: ctx.params.path }));
-		const res = await router.fetch(new Request("http://localhost/assets/images/logo.png"), mockInfo);
+		const res = await router.fetch(
+			new Request("http://localhost/assets/images/logo.png"),
+			mockInfo,
+		);
 		assertEquals(await res.json(), { path: "images/logo.png" });
 	});
 
@@ -187,13 +214,19 @@ Deno.test("router: precedence", async (t) => {
 		router.get("/users/new", (ctx) => ctx.json({ type: "new" }));
 		router.get("/users/:id", (ctx) => ctx.json({ type: "id", id: ctx.params.id }));
 
-		assertEquals(await (await router.fetch(new Request("http://localhost/users/new"), mockInfo)).json(), {
-			type: "new",
-		});
-		assertEquals(await (await router.fetch(new Request("http://localhost/users/123"), mockInfo)).json(), {
-			type: "id",
-			id: "123",
-		});
+		assertEquals(
+			await (await router.fetch(new Request("http://localhost/users/new"), mockInfo)).json(),
+			{
+				type: "new",
+			},
+		);
+		assertEquals(
+			await (await router.fetch(new Request("http://localhost/users/123"), mockInfo)).json(),
+			{
+				type: "id",
+				id: "123",
+			},
+		);
 	});
 
 	await t.step("param beats wildcard", async () => {
@@ -221,8 +254,13 @@ Deno.test("router: precedence", async (t) => {
 		router.get("/a/:b", (ctx) => ctx.json({ t: "short" }));
 		router.get("/a/:b/c", (ctx) => ctx.json({ t: "long" }));
 
-		assertEquals(await (await router.fetch(new Request("http://localhost/a/x"), mockInfo)).json(), { t: "short" });
-		assertEquals(await (await router.fetch(new Request("http://localhost/a/x/c"), mockInfo)).json(), { t: "long" });
+		assertEquals(await (await router.fetch(new Request("http://localhost/a/x"), mockInfo)).json(), {
+			t: "short",
+		});
+		assertEquals(
+			await (await router.fetch(new Request("http://localhost/a/x/c"), mockInfo)).json(),
+			{ t: "long" },
+		);
 	});
 });
 
@@ -245,7 +283,10 @@ Deno.test("router: method isolation", async (t) => {
 		const router = createRouter();
 		router.get("/data", (ctx) => ctx.text("hello"));
 
-		const res = await router.fetch(new Request("http://localhost/data", { method: "HEAD" }), mockInfo);
+		const res = await router.fetch(
+			new Request("http://localhost/data", { method: "HEAD" }),
+			mockInfo,
+		);
 		assertEquals(res.status, 200);
 		assertEquals(res.body, null);
 		assertEquals(res.headers.get("Content-Type"), "text/plain; charset=utf-8");
@@ -259,21 +300,30 @@ Deno.test("router: method isolation", async (t) => {
 			return ctx.text("head");
 		});
 
-		const res = await router.fetch(new Request("http://localhost/data", { method: "HEAD" }), mockInfo);
+		const res = await router.fetch(
+			new Request("http://localhost/data", { method: "HEAD" }),
+			mockInfo,
+		);
 		assertEquals(res.headers.get("X-Head"), "yes");
 	});
 
 	await t.step("OPTIONS works", async () => {
 		const router = createRouter();
 		router.options("/cors", (ctx) => ctx.noContent());
-		const res = await router.fetch(new Request("http://localhost/cors", { method: "OPTIONS" }), mockInfo);
+		const res = await router.fetch(
+			new Request("http://localhost/cors", { method: "OPTIONS" }),
+			mockInfo,
+		);
 		assertEquals(res.status, 204);
 	});
 
 	await t.step("unknown method returns 404", async () => {
 		const router = createRouter();
 		router.get("/users", (ctx) => ctx.json({ ok: true }));
-		const res = await router.fetch(new Request("http://localhost/users", { method: "POST" }), mockInfo);
+		const res = await router.fetch(
+			new Request("http://localhost/users", { method: "POST" }),
+			mockInfo,
+		);
 		assertEquals(res.status, 404);
 	});
 });
@@ -435,7 +485,14 @@ Deno.test("router: edge cases", async (t) => {
 		const router = createRouter();
 		router.get(
 			"/:a/:b/:c/:d/:e",
-			(ctx) => ctx.json({ a: ctx.params.a, b: ctx.params.b, c: ctx.params.c, d: ctx.params.d, e: ctx.params.e }),
+			(ctx) =>
+				ctx.json({
+					a: ctx.params.a,
+					b: ctx.params.b,
+					c: ctx.params.c,
+					d: ctx.params.d,
+					e: ctx.params.e,
+				}),
 		);
 		const res = await router.fetch(new Request("http://localhost/1/2/3/4/5"), mockInfo);
 		assertEquals(await res.json(), { a: "1", b: "2", c: "3", d: "4", e: "5" });
@@ -458,7 +515,10 @@ Deno.test("router: edge cases", async (t) => {
 	await t.step("path with hyphens and underscores", async () => {
 		const router = createRouter();
 		router.get("/my-route/with_underscores", (ctx) => ctx.json({ ok: true }));
-		const res = await router.fetch(new Request("http://localhost/my-route/with_underscores"), mockInfo);
+		const res = await router.fetch(
+			new Request("http://localhost/my-route/with_underscores"),
+			mockInfo,
+		);
 		assertEquals(res.status, 200);
 	});
 });

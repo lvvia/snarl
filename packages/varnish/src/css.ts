@@ -59,7 +59,9 @@ export function injectScopedStylesheet(ctx: Context, input: string): string | un
 
 	const headClose = "</head>";
 	const idx = input.indexOf(headClose);
-	if (idx !== -1) return input.slice(0, idx) + links + headClose + input.slice(idx + headClose.length);
+	if (idx !== -1) {
+		return input.slice(0, idx) + links + headClose + input.slice(idx + headClose.length);
+	}
 
 	const { doctype, rest } = splitDoctype(input);
 	return doctype + links + rest;

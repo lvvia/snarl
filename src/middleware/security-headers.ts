@@ -55,8 +55,12 @@ export function securityHeaders(options: SecurityHeadersOptions = {}): Middlewar
 		if (referrerPolicy) headers.set("Referrer-Policy", referrerPolicy);
 		if (permissionsPolicy) headers.set("Permissions-Policy", permissionsPolicy);
 		if (crossOriginOpenerPolicy) headers.set("Cross-Origin-Opener-Policy", crossOriginOpenerPolicy);
-		if (crossOriginEmbedderPolicy) headers.set("Cross-Origin-Embedder-Policy", crossOriginEmbedderPolicy);
-		if (crossOriginResourcePolicy) headers.set("Cross-Origin-Resource-Policy", crossOriginResourcePolicy);
+		if (crossOriginEmbedderPolicy) {
+			headers.set("Cross-Origin-Embedder-Policy", crossOriginEmbedderPolicy);
+		}
+		if (crossOriginResourcePolicy) {
+			headers.set("Cross-Origin-Resource-Policy", crossOriginResourcePolicy);
+		}
 		if (cacheControl) headers.set("Cache-Control", cacheControl);
 
 		return state;

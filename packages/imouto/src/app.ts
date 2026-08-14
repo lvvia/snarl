@@ -56,11 +56,17 @@ export function transform(mini: ReturnType<typeof minify>): Middleware {
 		const headers = new Headers(response.headers);
 		headers.delete("Content-Length");
 
-		return new Response(html, { status: response.status, statusText: response.statusText, headers });
+		return new Response(html, {
+			status: response.status,
+			statusText: response.statusText,
+			headers,
+		});
 	};
 }
 
-export async function createApp(options: AppOptions = {}): Promise<ReturnType<typeof createRouter>> {
+export async function createApp(
+	options: AppOptions = {},
+): Promise<ReturnType<typeof createRouter>> {
 	const {
 		staticDir,
 		routesDir,

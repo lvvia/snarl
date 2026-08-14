@@ -5,7 +5,13 @@
  */
 
 import { toFileUrl } from "@std/path";
-import type { ErrorModule, LayoutModule, MiddlewareModule, NotFoundModule, RootRouteMetadata } from "./types.ts";
+import type {
+	ErrorModule,
+	LayoutModule,
+	MiddlewareModule,
+	NotFoundModule,
+	RootRouteMetadata,
+} from "./types.ts";
 
 type SpecialAssigner = (meta: RootRouteMetadata, mod: any) => void;
 

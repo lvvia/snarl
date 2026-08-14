@@ -54,7 +54,10 @@ function prefixSelector(sel: string, scope: string): string {
 
 	if (sel.startsWith(scope)) return sel;
 
-	if (/^::?(view-transition|selection|backdrop|spelling-error|grammar-error|marker|placeholder)\b/i.test(sel)) {
+	if (
+		/^::?(view-transition|selection|backdrop|spelling-error|grammar-error|marker|placeholder)\b/i
+			.test(sel)
+	) {
 		return sel;
 	}
 	if (/^::?-webkit-scrollbar/i.test(sel)) return sel;

@@ -151,10 +151,15 @@ async function main() {
 	for await (const entry of walk(dir, walkOptions)) {
 		try {
 			const result = await processFile(entry.path, dry);
-			stats[result.status as keyof typeof stats] = (stats[result.status as keyof typeof stats] || 0) + 1;
+			stats[result.status as keyof typeof stats] =
+				(stats[result.status as keyof typeof stats] || 0) + 1;
 
 			if (verbose || result.status !== "ok") {
-				const color = result.status === "added" ? green : result.status === "updated" ? yellow : dim;
+				const color = result.status === "added"
+					? green
+					: result.status === "updated"
+					? yellow
+					: dim;
 				const sym = result.status === "added" ? "+" : result.status === "updated" ? "~" : "·";
 				console.log(`  ${color(sym)} ${result.msg.padEnd(25)} ${dim(entry.path)}`);
 			}

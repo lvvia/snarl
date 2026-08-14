@@ -21,7 +21,11 @@ export function wrapHandler(
 	};
 }
 
-async function render(ctx: Context, handler: RouteHandler, layouts: LayoutModule[]): Promise<Response> {
+async function render(
+	ctx: Context,
+	handler: RouteHandler,
+	layouts: LayoutModule[],
+): Promise<Response> {
 	let result = await handler(ctx);
 	if (result instanceof Response) return result;
 

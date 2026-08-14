@@ -5,7 +5,13 @@
  */
 
 import type { Handler, Middleware } from "../context/middleware.ts";
-import { httpMethods, type Method, type ParametersOf, type PreciseURLPattern, url } from "../types.ts";
+import {
+	httpMethods,
+	type Method,
+	type ParametersOf,
+	type PreciseURLPattern,
+	url,
+} from "../types.ts";
 import { createDispatcher, createEmptyExactTable, createEmptyRouteTable } from "./dispatch.ts";
 import { createNode, insertRoute, NodeType, type RadixNode, type TreeOptions } from "./tree.ts";
 import { extractPattern, type Route, type RouteMetadata, type RoutePayload } from "./route.ts";
@@ -139,7 +145,11 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 
 		allRoutes() {
 			return httpMethods.flatMap((method) =>
-				routes[method].map((route) => ({ method, pattern: route.pattern, metadata: route.metadata }))
+				routes[method].map((route) => ({
+					method,
+					pattern: route.pattern,
+					metadata: route.metadata,
+				}))
 			);
 		},
 
@@ -155,8 +165,11 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 
 	httpMethods.forEach((method) => {
 		const lower = method.toLowerCase() as Lowercase<Method>;
-		(r as any)[lower] = <P extends string>(path: P, handler: Handler<Params<P>>, metadata?: RouteMetadata) =>
-			r.on!(method as Method, path, handler, metadata);
+		(r as any)[lower] = <P extends string>(
+			path: P,
+			handler: Handler<Params<P>>,
+			metadata?: RouteMetadata,
+		) => r.on!(method as Method, path, handler, metadata);
 	});
 
 	return r as HttpRouter;

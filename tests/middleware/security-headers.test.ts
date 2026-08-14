@@ -18,7 +18,10 @@ Deno.test("securityHeaders middleware", async (t) => {
 		const res = await router.fetch(new Request("http://localhost/"), mockInfo);
 		assertEquals(res.headers.get("X-Content-Type-Options"), "nosniff");
 		assertEquals(res.headers.get("Referrer-Policy"), "strict-origin-when-cross-origin");
-		assertEquals(res.headers.get("Strict-Transport-Security"), "max-age=31536000; includeSubDomains");
+		assertEquals(
+			res.headers.get("Strict-Transport-Security"),
+			"max-age=31536000; includeSubDomains",
+		);
 		assertEquals(res.headers.has("Content-Security-Policy"), true);
 	});
 
