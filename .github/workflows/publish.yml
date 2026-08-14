@@ -35,10 +35,13 @@ jobs:
       - name: Get workspace packages
         id: packages
         run: |
-          json=$(for dir in $(find packages -maxdepth 2 -name deno.json -printf "%h\n" | sort -u); do
-            name=$(jq -r '.name' "$dir/deno.json")
-            echo "{\"name\":\"$name\",\"path\":\"$dir\"}"
-          done | jq -s .)
+          json=$(
+            if [ -f "deno.json" ]; then
+              echo "{\"name\":\"$(jq -r '.name' deno.json)\",\"path\":\".\"}"
+            fi
+            for dir in $(find packages -maxdepth 2 -name deno.json -printf "%h\n" | sort -u 2>/dev/null || true); do
+              echo "{\"name\":\"$(jq -r '.name' "$dir/deno.json")\",\"path\":\"$dir\"}"
+            done | jq -s -c .)
           echo "list=$json" >> $GITHUB_OUTPUT
 
   publish:
@@ -77,10 +80,13 @@ jobs:
         with:
           deno-version: v2.x
       - name: Publish ${{ github.event.inputs.package }}
+        env:
+          SELECTED_PKG: ${{ github.event.inputs.package }}
+          PACKAGES_JSON: ${{ needs.discover.outputs.packages }}
         run: |
-          PACKAGE=$(echo '${{ needs.discover.outputs.packages }}' | jq -r '.[] | select(.name == "${{ github.event.inputs.package }}") | .path')
+          PACKAGE=$(echo "$PACKAGES_JSON" | jq -r --arg pkg "$SELECTED_PKG" '.[] | select(.name == $pkg or (.name | endswith("/" + $pkg))) | .path')
           if [ -z "$PACKAGE" ]; then
             echo "Package not found"
             exit 1
           fi
-          cd $PACKAGE && deno publish
+          cd "$PACKAGE" && deno publish
