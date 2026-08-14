@@ -15,7 +15,7 @@ import {
 import { createDispatcher, createEmptyExactTable, createEmptyRouteTable } from "./dispatch.ts";
 import { createNode, insertRoute, type RadixNode, type TreeOptions } from "./tree.ts";
 import { extractPattern, type Route, type RouteMetadata, type RoutePayload } from "./route.ts";
-import { joinPrefix, mergeSubRouter } from "./group.ts";
+import { createPrefixedRouter } from "./group.ts";
 import { resolveRouterConfig, type RouterConfig } from "./config.ts";
 
 type Params<P> = P extends PreciseURLPattern<any> ? ParametersOf<P["raw"]>
@@ -126,21 +126,9 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 		},
 
 		group(prefix, configure) {
-			const subRouter = createRouter({
-				...config,
-				prefix: joinPrefix(config.prefix, prefix),
-			});
-			configure(subRouter);
-
-			mergeSubRouter(
-				subRouter.routes,
-				subRouter.middlewares,
-				routes,
-				trees,
-				exactRoutes,
-				treeOptions,
-			);
-			return r as HttpRouter;
+			const prefixed = createPrefixedRouter(r as HttpRouter, prefix);
+			configure(prefixed);
+			return prefixed;
 		},
 
 		allRoutes() {
