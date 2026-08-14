@@ -32,27 +32,30 @@ jobs:
       packages: ${{ steps.packages.outputs.list }}
     steps:
       - uses: actions/checkout@v7
-      - name: Get workspace packages
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Discover workspace packages
         id: packages
         run: |
-          json=$(
-            if [ -f "deno.json" ]; then
-              echo "{\"name\":\"$(jq -r '.name' deno.json)\",\"path\":\".\"}"
-            fi
-            for dir in $(find packages -maxdepth 2 -name deno.json -printf "%h\n" | sort -u 2>/dev/null || true); do
-              echo "{\"name\":\"$(jq -r '.name' "$dir/deno.json")\",\"path\":\"$dir\"}"
-            done | jq -s -c .)
-          echo "list=$json" >> $GITHUB_OUTPUT
+          chmod +x ./scripts/discover-packages.ts
+          echo "list<<EOF" >> $GITHUB_OUTPUT
+          ./scripts/discover-packages.ts >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
   publish:
     runs-on: ubuntu-latest
     needs: discover
-    if: |
-      github.event_name == 'push' ||
-      github.event.inputs.package == 'all'
     strategy:
+      fail-fast: false
       matrix:
         package: ${{ fromJson(needs.discover.outputs.packages) }}
+    if: |
+      github.event_name == 'push' ||
+      github.event.inputs.package == 'all' ||
+      matrix.package.name == github.event.inputs.package ||
+      endsWith(matrix.package.name, concat('/', github.event.inputs.package))
     permissions:
       contents: read
       id-token: write
@@ -64,29 +67,3 @@ jobs:
       - name: Publish ${{ matrix.package.name }}
         working-directory: ${{ matrix.package.path }}
         run: deno publish
-
-  publish-selected:
-    runs-on: ubuntu-latest
-    needs: discover
-    if: |
-      github.event_name == 'workflow_dispatch' &&
-      github.event.inputs.package != 'all'
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - uses: actions/checkout@v7
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-      - name: Publish ${{ github.event.inputs.package }}
-        env:
-          SELECTED_PKG: ${{ github.event.inputs.package }}
-          PACKAGES_JSON: ${{ needs.discover.outputs.packages }}
-        run: |
-          PACKAGE=$(echo "$PACKAGES_JSON" | jq -r --arg pkg "$SELECTED_PKG" '.[] | select(.name == $pkg or (.name | endswith("/" + $pkg))) | .path')
-          if [ -z "$PACKAGE" ]; then
-            echo "Package not found"
-            exit 1
-          fi
-          cd "$PACKAGE" && deno publish
