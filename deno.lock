@@ -128,11 +128,6 @@
       "jsr:@std/path@^1.1.6"
     ],
     "members": {
-      "packages/imouto": {
-        "dependencies": [
-          "jsr:@july/snarl@^1.0.2"
-        ]
-      },
       "packages/varnish": {
         "dependencies": [
           "jsr:@minify-html/deno@~0.18.1",

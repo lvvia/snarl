@@ -1,15 +1,12 @@
 {
 	"name": "@404/imouto",
 	"description": "a minimal full-stack web framework for deno",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"license": "Apache-2.0",
 	"exports": {
 		".": "./src/mod.ts",
 		"./jsx-runtime": "./src/jsx-runtime.ts",
 		"./jsx-dev-runtime": "./src/jsx-runtime.ts"
-	},
-	"imports": {
-		"@july/snarl": "jsr:@july/snarl@^1.0.2"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
