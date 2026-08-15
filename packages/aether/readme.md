@@ -19,6 +19,15 @@ a minimal islands architecture implementation for [snarl]
 		"@404/imouto": "jsr:@404/imouto",
 		"@404/aether": "jsr:@404/aether"
 	},
+	"permissions": {
+		"default": {
+			"net": true,
+			"read": true,
+			"run": true,
+			"env": true,
+			"write": true
+		}
+	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
 		"jsxImportSource": "@404/aether",
@@ -53,7 +62,7 @@ export default function Meow() {
 ```tsx
 // ./main.ts
 import { createApp } from "@404/imouto";
-import { aether } from "@404/aether";
+import { aether } from "@404/aether/server";
 
 const app = await createApp({ routesDir: "./routes" });
 

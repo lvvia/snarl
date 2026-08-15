@@ -15,7 +15,6 @@ import {
 	LoggerOptions,
 	Middleware,
 	MiddlewareLike,
-	// @ts-types="@july/snarl"
 	MiddlewarePriority,
 	staticFiles,
 } from "@july/snarl";
