@@ -23,6 +23,51 @@ export const voidTags: ReadonlySet<string> = new Set([
 	"wbr",
 ]);
 
+const svgTags = new Set([
+	"svg",
+	"path",
+	"circle",
+	"rect",
+	"line",
+	"polyline",
+	"polygon",
+	"ellipse",
+	"g",
+	"defs",
+	"symbol",
+	"use",
+	"text",
+	"tspan",
+	"textPath",
+	"image",
+	"clipPath",
+	"mask",
+	"pattern",
+	"filter",
+	"feBlend",
+	"feColorMatrix",
+	"feComponentTransfer",
+	"feComposite",
+	"feConvolveMatrix",
+	"feDiffuseLighting",
+	"feDisplacementMap",
+	"feFlood",
+	"feGaussianBlur",
+	"feImage",
+	"feMerge",
+	"feMorphology",
+	"feOffset",
+	"feSpecularLighting",
+	"feTile",
+	"feTurbulence",
+	"linearGradient",
+	"radialGradient",
+	"stop",
+	"marker",
+	"foreignObject",
+]);
+const SVG_NS = "http://www.w3.org/2000/svg";
+
 export const Fragment = Symbol.for("jsx.fragment");
 
 const ESC_RE = /[&<>"']/;
@@ -111,7 +156,7 @@ function normaliseChildren(raw: unknown): (Node | string)[] {
 	return [String(raw)];
 }
 
-function applyStyle(el: HTMLElement, value: unknown): void {
+function applyStyle(el: HTMLElement | SVGElement, value: unknown): void {
 	if (typeof value === "string") return void (el.style.cssText = value);
 	if (typeof value !== "object" || value === null) return;
 	for (const prop in value as Record<string, string | number>) {
@@ -122,10 +167,10 @@ function applyStyle(el: HTMLElement, value: unknown): void {
 	}
 }
 
-function applyAttribute(el: HTMLElement, key: string, value: unknown): void {
+function applyAttribute(el: HTMLElement | SVGElement, key: string, value: unknown): void {
 	if (value == null) return;
 
-	if (key === "class") return void (el.className = String(value));
+	if (key === "class") return void ((el as HTMLElement).className = String(value));
 	if (key === "style") return applyStyle(el, value);
 
 	if (key === "href" && el instanceof HTMLAnchorElement) return void (el.href = String(value));
@@ -137,7 +182,7 @@ function applyAttribute(el: HTMLElement, key: string, value: unknown): void {
 	el.setAttribute(key, value === true ? "" : String(value));
 }
 
-function bindProp(el: HTMLElement, key: string, value: unknown): void {
+function bindProp(el: HTMLElement | SVGElement, key: string, value: unknown): void {
 	if (value == null) return;
 	if (isReactive(value)) {
 		return void effect(() => applyAttribute(el, key, (value as () => unknown)()));
@@ -145,8 +190,10 @@ function bindProp(el: HTMLElement, key: string, value: unknown): void {
 	applyAttribute(el, key, value);
 }
 
-function buildElement(tag: string, props: JSX.Props): HTMLElement {
-	const el = document.createElement(tag);
+function buildElement(tag: string, props: JSX.Props): HTMLElement | SVGElement {
+	const el = svgTags.has(tag)
+		? document.createElementNS(SVG_NS, tag) as SVGElement
+		: document.createElement(tag);
 
 	for (const key in props) {
 		if (key === "children" || key === "dangerouslySetInnerHTML" || key === "key") continue;
