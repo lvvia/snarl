@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { effectScope } from "@404/aether/reactivity";
+import { effectScope } from "../reactivity/mod.ts";
 
 export type IslandComponent<P = Record<string, unknown>> = (props: P) => Node | Node[] | null;
 

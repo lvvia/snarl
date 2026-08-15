@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { type Computed, effect, isReactive, type Signal } from "@404/aether/reactivity";
+import { type Computed, effect, isReactive, type Signal } from "../reactivity/mod.ts";
 
 export const voidTags: ReadonlySet<string> = new Set([
 	"area",
