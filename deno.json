@@ -1,9 +1,9 @@
 {
 	"name": "@july/snarl",
 	"description": "a minimal web framework for deno",
-	"version": "1.1.1",
+	"version": "1.2.0",
 	"license": "MPL-2.0",
-	"workspace": ["./packages/*"],
+	"workspace": ["./packages/*", "./examples/*"],
 	"exports": {
 		".": "./src/mod.ts",
 		"./jsx-runtime": "./src/jsx-runtime.ts",
@@ -33,7 +33,6 @@
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
-		"jsxImportSource": "@july/snarl",
 		"lib": ["deno.ns", "dom", "dom.iterable"]
 	},
 	"lint": {
