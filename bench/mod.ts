@@ -1,7 +1,17 @@
 // uses `oha` (https://github.com/hatoo/oha) for benchmarking
 
 import { Table } from "@cliffy/table";
-import { bold, cyan, dim, green, magenta, red, stripAnsiCode, white, yellow } from "@std/fmt/colors";
+import {
+	bold,
+	cyan,
+	dim,
+	green,
+	magenta,
+	red,
+	stripAnsiCode,
+	white,
+	yellow,
+} from "@std/fmt/colors";
 import servers from "./servers.ts";
 import { type Scenario, scenarios } from "./scenarios.ts";
 
@@ -64,7 +74,9 @@ const opts = parseArgs(Deno.args);
 const port = 6776;
 
 const allServers = Object.entries(servers);
-const activeServers = opts.servers ? allServers.filter(([name]) => opts.servers!.includes(name)) : allServers;
+const activeServers = opts.servers
+	? allServers.filter(([name]) => opts.servers!.includes(name))
+	: allServers;
 
 if (!activeServers.length) {
 	console.error(red(`no matching servers for: ${opts.servers?.join(", ")}`));
@@ -238,7 +250,9 @@ async function bench(
 function scenarioLine(scenario: Scenario, res: BenchResult): string {
 	const rps = `${(res.rps / 1000).toFixed(1)}k rps`;
 	const latency = `${res.mean.toFixed(1)}ms avg`;
-	const stats = res.errors > 0 ? red(`${rps} · ${latency} · ${res.errors} errors`) : `${dim(rps)} · ${dim(latency)}`;
+	const stats = res.errors > 0
+		? red(`${rps} · ${latency} · ${res.errors} errors`)
+		: `${dim(rps)} · ${dim(latency)}`;
 	return `      ${bold("▸")} ${scenario.name.padEnd(16)} ${stats}`;
 }
 

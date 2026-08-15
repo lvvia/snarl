@@ -100,6 +100,8 @@ for (const row of rows) {
 
 for (let r = 0; r < rows.length; r++) {
 	const row = rows[r];
-	const cells = row.map((cell, i) => alignments[i] === "right" ? cell.padStart(widths[i]) : cell.padEnd(widths[i]));
+	const cells = row.map((cell, i) =>
+		alignments[i] === "right" ? cell.padStart(widths[i]) : cell.padEnd(widths[i])
+	);
 	console.log(`| ${cells.join(" | ")} |\n`);
 }
