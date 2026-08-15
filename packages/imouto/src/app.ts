@@ -9,7 +9,16 @@
  * pre‑configured router with common middleware
  */
 
-import { createRouter, logger, Middleware, staticFiles } from "@july/snarl";
+import {
+	createRouter,
+	logger,
+	LoggerOptions,
+	Middleware,
+	MiddlewareLike,
+	// @ts-types="@july/snarl"
+	MiddlewarePriority,
+	staticFiles,
+} from "@july/snarl";
 import { context, minify, scanRoutes } from "./mod.ts";
 import { collectHeadContent, injectIntoHead } from "./head.ts";
 import { injectScopedStylesheet, scopedCss } from "@404/varnish";
@@ -24,9 +33,10 @@ export interface AppOptions {
 	maxAge?: number;
 	/** whether to show route registration logs */
 	verbose?: boolean;
+	logger?: boolean | LoggerOptions | MiddlewareLike;
 }
 
-const DEFAULT_APP_OPTIONS: Required<AppOptions> = {
+const DEFAULT_APP_OPTIONS: Required<Omit<AppOptions, "logger">> = {
 	staticDir: "./static",
 	routesDir: "./src/routes",
 	env: Deno.env.get("ENV") || "development",
@@ -79,7 +89,7 @@ export async function createApp(
 		...options,
 		verbose: options?.verbose ?? (options?.env ?? DEFAULT_APP_OPTIONS.env) !== "production",
 		maxAge: options?.maxAge ?? (options?.immutableStatic ? 31536000 : 3600),
-	} satisfies Required<AppOptions>;
+	};
 
 	const router = createRouter();
 	router.config.onListen = ({ hostname, port }) => {
@@ -102,6 +112,34 @@ export async function createApp(
 		},
 		logger(),
 	);
+
+	if (options.logger !== false) {
+		let def: MiddlewareLike;
+		if (options.logger === true || options.logger === undefined) {
+			def = {
+				name: "logger",
+				priority: MiddlewarePriority.late,
+				factory: () => logger(),
+			};
+		} else if (typeof options.logger === "string") {
+			def = options.logger;
+		} else if (typeof options.logger === "function") {
+			def = {
+				name: "logger",
+				priority: MiddlewarePriority.late,
+				factory: () => options.logger as Middleware,
+			};
+		} else if (typeof options.logger === "object" && "factory" in options.logger) {
+			def = options.logger;
+		} else {
+			def = {
+				name: "logger",
+				priority: MiddlewarePriority.late,
+				factory: () => logger(options.logger as LoggerOptions),
+			};
+		}
+		router.use(def);
+	}
 
 	if (routesDir) {
 		await scanRoutes(router, { dir: routesDir, verbose });
