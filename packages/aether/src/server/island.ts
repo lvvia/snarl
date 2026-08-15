@@ -1,0 +1,107 @@
+/**
+ * snarl, a minimal web framework for deno
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
+import { type JSX, jsx } from "@july/snarl/jsx-runtime";
+import { type IslandMeta, markIslandUsed } from "./registry.ts";
+import { isJsxElement } from "@july/snarl";
+
+export interface IslandWrapperOptions {
+	/** wrapper element tag around the hydration marker. defaults to "div" */
+	as?: string;
+}
+
+/**
+ * @param name a stable id, unique across the app
+ * @param Component the plain isomorphic component to wrap
+ * @param moduleUrl `import.meta.resolve(...)` of the file `Component` came from
+ */
+export function island<P extends Record<string, unknown>>(
+	meta: IslandMeta,
+	options: IslandWrapperOptions = {},
+): (props: P) => JSX.Element {
+	const tag = options.as ?? "div";
+	const Component = meta.Component as (props: P) => JSX.Node;
+
+	function IslandWrapper(props: P): JSX.Element {
+		props ??= {} as P;
+
+		assertSerialisableProps(meta.id, props);
+		markIslandUsed(meta.id);
+
+		return jsx(tag, {
+			"data-x-id": meta.id,
+			"data-x-props": JSON.stringify(props ?? {}),
+			children: Component(props),
+		});
+	}
+
+	Object.defineProperty(IslandWrapper, "name", {
+		value: `Island(${meta.exportName})`,
+		configurable: true,
+	});
+
+	return IslandWrapper;
+}
+
+function assertSerialisableProps(id: string, props: Record<string, unknown>): void {
+	const seen = new WeakSet<object>();
+
+	function visit(path: string, value: unknown): void {
+		if (
+			value === null ||
+			value === undefined ||
+			typeof value === "string" ||
+			typeof value === "number" ||
+			typeof value === "boolean"
+		) {
+			return;
+		}
+
+		if (typeof value === "function") {
+			throw new Error(
+				`aether: island "${id}" prop "${path}" is a function and can't cross to the client`,
+			);
+		}
+
+		if (typeof value !== "object") {
+			throw new Error(
+				`aether: island "${id}" prop "${path}" has unsupported type ${typeof value}`,
+			);
+		}
+
+		if (isJsxElement(value)) {
+			throw new Error(
+				`aether: island "${id}" prop "${path}" is JSX. ` +
+					`Islands cannot receive JSX children/props unless you implement serialisable slots.`,
+			);
+		}
+
+		const objectValue = value as object;
+		if (seen.has(objectValue)) {
+			throw new Error(`aether: island "${id}" prop "${path}" contains a circular value`);
+		}
+		seen.add(objectValue);
+
+		if (Array.isArray(objectValue)) {
+			objectValue.forEach((item, index) => visit(`${path}[${index}]`, item));
+			return;
+		}
+
+		for (const key of Object.keys(objectValue)) {
+			visit(`${path}.${key}`, (objectValue as Record<string, unknown>)[key]);
+		}
+	}
+
+	for (const key of Object.keys(props)) {
+		if (key === "children" && props[key] != null) {
+			throw new Error(
+				`aether: island "${id}" received children. Island children must be serialisable props, not JSX.`,
+			);
+		}
+
+		visit(key, props[key]);
+	}
+}
