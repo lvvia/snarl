@@ -117,6 +117,7 @@ export function createPrefixedRouter(parent: Router, prefix: string): Router {
 		routes: parent.routes,
 		middlewares: parent.middlewares,
 		config: parent.config,
+		middlewareOrder: parent.middlewareOrder,
 
 		use(...mw) {
 			parent.use(...mw);

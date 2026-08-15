@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+export * from "./manager.ts";
 export * from "./cors.ts";
 export * from "./logger.ts";
 export * from "./security-headers.ts";

@@ -17,6 +17,7 @@ import { createNode, insertRoute, type RadixNode, type TreeOptions } from "./tre
 import { extractPattern, type Route, type RouteMetadata, type RoutePayload } from "./route.ts";
 import { createPrefixedRouter } from "./group.ts";
 import { resolveRouterConfig, type RouterConfig } from "./config.ts";
+import { type MiddlewareLike, MiddlewareManager } from "../middleware/mod.ts";
 
 type Params<P> = P extends PreciseURLPattern<any> ? ParametersOf<P["raw"]>
 	: P extends string ? ParametersOf<P>
@@ -28,7 +29,8 @@ interface Router {
 	middlewares: Middleware[];
 	config: RouterConfig;
 
-	use(...middlewares: (Middleware | Middleware[])[]): this;
+	use(...middlewares: (MiddlewareLike | MiddlewareLike[])[]): this;
+	middlewareOrder(): readonly string[];
 
 	on<P extends string | PreciseURLPattern<any> | URLPattern>(
 		method: Method,
@@ -83,17 +85,19 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 	) as Record<Method, RadixNode<RoutePayload>>;
 
 	const middlewares: Middleware[] = [];
+	const manager = new MiddlewareManager(middlewares);
 
 	const r: Partial<HttpRouter> = {
 		routes,
 		middlewares,
 		config,
-
-		use(...mw: (Middleware | Middleware[])[]) {
-			middlewares.push(...mw.flat());
+		use(...mw: (MiddlewareLike | MiddlewareLike[])[]) {
+			for (const entry of mw.flat()) manager.use(entry);
 			return r as HttpRouter;
 		},
-
+		middlewareOrder() {
+			return manager.order();
+		},
 		on<P extends string | PreciseURLPattern<any> | URLPattern>(
 			method: Method,
 			path: P,
@@ -144,12 +148,19 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 		serve(opts) {
 			opts ??= {} as unknown as typeof opts;
 			opts!.onListen ??= config.onListen;
+			manager.resolve().catch((error) => {
+				console.error("snarl: middleware stack resolution failed:", error);
+				Deno.exit(1);
+			});
 			return Deno.serve(opts!, r.fetch!);
 		},
 	};
 
 	const dispatcher = createDispatcher({ trees, exactRoutes, middlewares, config });
-	r.fetch = dispatcher.fetch;
+	r.fetch = async (request, info) => {
+		await manager.resolve();
+		return dispatcher.fetch(request, info);
+	};
 
 	httpMethods.forEach((method) => {
 		const lower = method.toLowerCase() as Lowercase<Method>;
