@@ -26,7 +26,7 @@ const SPECIAL_FILE_HANDLERS: Record<string, SpecialAssigner> = {
 	error: (meta, mod: ErrorModule) => {
 		meta.errorBoundary = mod;
 	},
-	404: (meta, mod: NotFoundModule) => {
+	"404": (meta, mod: NotFoundModule) => {
 		meta.notFound = mod;
 	},
 };
