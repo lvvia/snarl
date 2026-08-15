@@ -1,0 +1,30 @@
+{
+	"name": "@404/aether",
+	"description": "a minimal islands architecture implementation for snarl",
+	"version": "0.1.0",
+	"license": "MPL-2.0",
+	"exports": {
+		".": "./src/mod.ts",
+		"./jsx-runtime": "./src/jsx-runtime.ts",
+		"./client": "./src/client/mod.ts",
+		"./client/jsx-runtime": "./src/client/jsx.ts",
+		"./client/jsx-dev-runtime": "./src/client/jsx.ts",
+		"./reactivity": "./src/reactivity/mod.ts",
+		"./server": "./src/server/mod.ts"
+	},
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "@404/aether",
+		"lib": ["deno.ns", "dom", "dom.iterable"]
+	},
+	"lint": {
+		"rules": {
+			"exclude": ["no-explicit-any"]
+		}
+	},
+	"imports": {
+		"esbuild": "npm:esbuild@^0.28.2",
+		"meriyah": "npm:meriyah@^7.3.1",
+		"ts-blank-space": "npm:ts-blank-space@^0.9.0"
+	}
+}
