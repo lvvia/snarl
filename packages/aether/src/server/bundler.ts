@@ -9,6 +9,7 @@ import { fromFileUrl, join } from "@std/path";
 import { getIslandModuleUrl } from "./registry.ts";
 
 import * as esbuild from "esbuild";
+import { denoPlugin } from "@deno/esbuild-plugin";
 
 export interface AetherServeOptions {
 	/** in-memory cache for bundled islands. defaults to a shared `Map` */
@@ -22,25 +23,40 @@ export interface AetherServeOptions {
 const AETHER_SRC_ROOT = fromFileUrl(new URL("../", import.meta.url));
 
 class UnsupportedExportError extends Error {
-	constructor(exportName: string) {
-		super(`The export "${exportName}" is not supported in this environment.`);
+	constructor(exportName: string, hint?: string) {
+		super(
+			`The export "${exportName}" is not supported in this environment` +
+				(hint ? ` ~ ${hint}` : ""),
+		);
 		this.name = "UnsupportedExportError";
 	}
 }
 
-const KNOWN_EXPORTS: Record<string, string | (() => never)> = {
-	"@404/aether": "mod.ts",
-	"@july/snarl/jsx-runtime": "jsx-runtime.ts",
-	"@july/snarl/jsx-dev-runtime": "jsx-runtime.ts",
-	"@404/aether/jsx-runtime": "jsx-runtime.ts",
-	"@404/aether/jsx-dev-runtime": "jsx-runtime.ts",
+const KNOWN_EXPORTS: Record<string, string | (() => never) | undefined> = {
+	"@404/aether": "client/browser-mod.ts",
+	"@404/aether/jsx-runtime": "client/jsx.ts",
+	"@404/aether/jsx-dev-runtime": "client/jsx.ts",
 	"@404/aether/client": "client/mod.ts",
 	"@404/aether/client/runtime": "client/runtime.ts",
 	"@404/aether/client/jsx-runtime": "client/jsx.ts",
 	"@404/aether/client/jsx-dev-runtime": "client/jsx.ts",
 	"@404/aether/reactivity": "reactivity/mod.ts",
 	"@404/aether/server": () => {
-		throw new UnsupportedExportError("@404/aether/server");
+		throw new UnsupportedExportError(
+			"@404/aether/server",
+			"island registration and the esbuild-based bundler only run server-side",
+		);
+	},
+	"@july/snarl": () => {
+		throw new UnsupportedExportError(
+			"@july/snarl",
+			'use "@404/aether/reactivity" or "@404/aether/client" instead',
+		);
+	},
+	"@july/snarl/jsx-runtime": "client/jsx.ts",
+	"@july/snarl/jsx-dev-runtime": "client/jsx.ts",
+	"@404/imouto": () => {
+		throw new UnsupportedExportError("@404/imouto");
 	},
 };
 
@@ -49,7 +65,9 @@ function aetherResolver(): esbuild.Plugin {
 	return {
 		name: "aether-resolver",
 		setup(build) {
-			build.onResolve({ filter: /^(?:@404\/aether|@july\/snarl)(\/|$)/ }, (args) => {
+			build.onResolve({ filter: /^(?:@404\/aether|@404\/imouto|@july\/snarl)(\/|$)/ }, (args) => {
+				if (!(args.path in KNOWN_EXPORTS)) return;
+
 				const rel = KNOWN_EXPORTS[args.path];
 				if (!rel) return { path: args.path, external: true };
 
@@ -81,7 +99,7 @@ export async function bundleIslands(
 		target: "es2022",
 		jsx: "automatic",
 		jsxImportSource: options.jsxImportSource ?? "@404/aether/client",
-		plugins: [aetherResolver(), ...(options.plugins ?? [])],
+		plugins: [aetherResolver(), denoPlugin(), ...(options.plugins ?? [])],
 		minify: Deno.env.get("ENV") === "production",
 		treeShaking: true,
 		logLevel: "warning",

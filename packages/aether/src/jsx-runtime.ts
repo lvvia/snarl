@@ -5,7 +5,6 @@
  */
 
 import * as snarl from "@july/snarl/jsx-runtime";
-import { jsx as snarl$jsx } from "@july/snarl/jsx-runtime";
 
 import { island } from "./server/island.ts";
 import { getIslandMeta } from "./server/registry.ts";
@@ -39,9 +38,9 @@ function jsx(tag: any, props: any): any {
 		for (const key of Object.keys(props)) {
 			unwrapped[key] = unwrapReactive(props[key]);
 		}
-		return snarl$jsx(tag, unwrapped);
+		return snarl.jsx(tag, unwrapped);
 	}
-	return snarl$jsx(tag, props);
+	return snarl.jsx(tag, props);
 }
 
 export const Fragment = snarl.Fragment;
