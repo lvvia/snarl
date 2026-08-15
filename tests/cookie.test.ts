@@ -4,188 +4,185 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertNotEquals } from "@std/assert";
 import { CookieJar, deleteCookie, parseCookies, serializeCookie } from "@july/snarl";
 
-Deno.test("cookie: parseCookies", async (t) => {
-	await t.step("parses simple cookie pairs", () => {
+Deno.test("parseCookies", async (t) => {
+	await t.step("parses simple pairs", () => {
 		assertEquals(parseCookies("a=1; b=2"), { a: "1", b: "2" });
 	});
-
-	await t.step("handles null/empty header", () => {
+	await t.step("null/empty header becomes empty object", () => {
 		assertEquals(parseCookies(null), {});
 		assertEquals(parseCookies(""), {});
 	});
-
 	await t.step("decodes URL-encoded values", () => {
 		assertEquals(parseCookies("token=abc%20123"), { token: "abc 123" });
 	});
-
-	await t.step("handles malformed encoding gracefully", () => {
+	await t.step("malformed percent-encoding falls back to raw value", () => {
 		assertEquals(parseCookies("bad=%ZZ"), { bad: "%ZZ" });
 	});
-
-	await t.step("ignores cookies without equals sign", () => {
+	await t.step("skips entries with no '='", () => {
 		assertEquals(parseCookies("a=1; bogus; b=2"), { a: "1", b: "2" });
 	});
-
-	await t.step("trims whitespace around pairs", () => {
-		assertEquals(parseCookies(" a = 1 ; b = 2 "), { "a": "1", "b": "2" });
+	await t.step("trims surrounding whitespace", () => {
+		assertEquals(parseCookies(" a = 1 ; b = 2 "), { a: "1", b: "2" });
+	});
+	await t.step("value itself may contain '='", () => {
+		assertEquals(parseCookies("token=a=b=c"), { token: "a=b=c" });
+	});
+	await t.step("empty value is preserved", () => {
+		assertEquals(parseCookies("a="), { a: "" });
 	});
 });
 
-Deno.test("cookie: serializeCookie", async (t) => {
-	await t.step("serializes basic cookie", () => {
-		const result = serializeCookie("session", "abc123");
-		assertEquals(result, "session=abc123; Secure; HttpOnly; SameSite=Lax");
+Deno.test("serializeCookie", async (t) => {
+	await t.step("defaults: Secure, HttpOnly, SameSite=Lax", () => {
+		assertEquals(serializeCookie("s", "v"), "s=v; Secure; HttpOnly; SameSite=Lax");
 	});
-
-	await t.step("respects httpOnly: false", () => {
-		const result = serializeCookie("session", "abc123", { httpOnly: false });
-		assertEquals(result.includes("HttpOnly"), false);
+	await t.step("URL-encodes the value", () => {
+		assertEquals(serializeCookie("s", "a b"), "s=a%20b; Secure; HttpOnly; SameSite=Lax");
 	});
-
-	await t.step("respects secure: false", () => {
-		const result = serializeCookie("session", "abc123", { secure: false });
-		assertEquals(result.includes("Secure"), false);
+	await t.step("secure: false omits Secure", () => {
+		assertEquals(serializeCookie("s", "v", { secure: false }).includes("Secure"), false);
 	});
-
-	await t.step("sets expires", () => {
-		const date = new Date("2026-01-01T00:00:00Z");
-		const result = serializeCookie("session", "abc123", {
-			expires: date,
-			secure: false,
-			httpOnly: false,
-		});
-		assertEquals(result.includes("Expires=Thu, 01 Jan 2026"), true);
+	await t.step("httpOnly: false omits HttpOnly", () => {
+		assertEquals(serializeCookie("s", "v", { httpOnly: false }).includes("HttpOnly"), false);
 	});
-
-	await t.step("sets domain", () => {
-		const result = serializeCookie("session", "abc123", {
+	await t.step("expires renders UTC string", () => {
+		const d = new Date("2026-06-01T00:00:00Z");
+		assertEquals(
+			serializeCookie("s", "v", { expires: d, secure: false, httpOnly: false }).includes(
+				"Expires=Mon, 01 Jun 2026",
+			),
+			true,
+		);
+	});
+	await t.step("maxAge renders exactly, including 0", () => {
+		assertEquals(
+			serializeCookie("s", "v", { maxAge: 0, secure: false, httpOnly: false }).includes(
+				"Max-Age=0",
+			),
+			true,
+		);
+	});
+	await t.step("domain and path render when present", () => {
+		const out = serializeCookie("s", "v", {
 			domain: "example.com",
-			secure: false,
-			httpOnly: false,
-		});
-		assertEquals(result.includes("Domain=example.com"), true);
-	});
-
-	await t.step("sets path", () => {
-		const result = serializeCookie("session", "abc123", {
 			path: "/api",
 			secure: false,
 			httpOnly: false,
 		});
-		assertEquals(result.includes("Path=/api"), true);
+		assertEquals(out.includes("Domain=example.com"), true);
+		assertEquals(out.includes("Path=/api"), true);
 	});
-
-	await t.step("sets sameSite", () => {
-		const result = serializeCookie("session", "abc123", {
-			sameSite: "Strict",
-			secure: false,
-			httpOnly: false,
-		});
-		assertEquals(result.includes("SameSite=Strict"), true);
+	await t.step("sameSite: explicit value overrides default", () => {
+		assertEquals(
+			serializeCookie("s", "v", { sameSite: "Strict", secure: false, httpOnly: false }).includes(
+				"SameSite=Strict",
+			),
+			true,
+		);
 	});
-
-	await t.step("defaults sameSite to Lax", () => {
-		const result = serializeCookie("session", "abc123", { secure: false, httpOnly: false });
-		assertEquals(result.includes("SameSite=Lax"), true);
+	await t.step("sameSite: empty string omits the attribute entirely", () => {
+		const out = serializeCookie("s", "v", { sameSite: "" as any, secure: false, httpOnly: false });
+		assertEquals(out.includes("SameSite"), false);
 	});
+	await t.step("sameSite: undefined falls back to Lax", () => {
+		assertEquals(
+			serializeCookie("s", "v", { sameSite: undefined, secure: false, httpOnly: false }).includes(
+				"SameSite=Lax",
+			),
+			true,
+		);
+	});
+	await t.step("prefix 'host': forces __Host- name, Path=/, Secure, forbids Domain", () => {
+		const out = serializeCookie("s", "v", { prefix: "host", domain: "example.com", path: "/x" });
+		assertEquals(out.startsWith("__Host-s="), true);
+		assertEquals(out.includes("Path=/"), true);
+		assertEquals(out.includes("Secure"), true);
+		assertEquals(out.includes("Domain="), false);
+	});
+	await t.step(
+		"prefix 'secure': forces __Secure- name and Secure, leaves other options alone",
+		() => {
+			const out = serializeCookie("s", "v", { prefix: "secure", path: "/x", httpOnly: false });
+			assertEquals(out.startsWith("__Secure-s="), true);
+			assertEquals(out.includes("Secure"), true);
+			assertEquals(out.includes("Path=/x"), true);
+		},
+	);
+});
 
-	await t.step("omits SameSite when explicitly null", () => {
-		const result = serializeCookie("session", "abc123", {
-			sameSite: undefined as any,
-			secure: false,
-			httpOnly: false,
-		});
-		assertEquals(result.includes("SameSite=Lax"), true);
+Deno.test("deleteCookie", async (t) => {
+	await t.step("sets Expires in the past and Max-Age=0", () => {
+		const out = deleteCookie("s");
+		assertEquals(out.includes("Expires=Thu, 01 Jan 1970"), true);
+		assertEquals(out.includes("Max-Age=0"), true);
+	});
+	await t.step("forwards domain/path for exact-match deletion", () => {
+		const out = deleteCookie("s", { domain: "example.com", path: "/admin" });
+		assertEquals(out.includes("Domain=example.com"), true);
+		assertEquals(out.includes("Path=/admin"), true);
 	});
 });
 
-Deno.test("cookie: __Host- prefix", async (t) => {
-	await t.step("prepends __Host- and forces Secure, Path=/", () => {
-		const result = serializeCookie("session", "abc123", { prefix: "host" });
-		assertEquals(result.startsWith("__Host-session="), true);
-		assertEquals(result.includes("Secure"), true);
-		assertEquals(result.includes("Path=/"), true);
-		assertEquals(result.includes("Domain="), false);
-	});
-
-	await t.step("__Secure- prefix forces Secure only", () => {
-		const result = serializeCookie("token", "xyz", {
-			prefix: "secure",
-			path: "/api",
-			httpOnly: false,
-		});
-		assertEquals(result.startsWith("__Secure-token="), true);
-		assertEquals(result.includes("Secure"), true);
-		assertEquals(result.includes("Path=/api"), true);
-	});
-});
-
-Deno.test("cookie: deleteCookie", async (t) => {
-	await t.step("sets expiry in the past", () => {
-		const result = deleteCookie("session");
-		assertEquals(result.includes("Expires=Thu, 01 Jan 1970"), true);
-		assertEquals(result.includes("Max-Age=0"), true);
-	});
-
-	await t.step("matches domain/path for deletion", () => {
-		const result = deleteCookie("session", { domain: "example.com", path: "/admin" });
-		assertEquals(result.includes("Domain=example.com"), true);
-		assertEquals(result.includes("Path=/admin"), true);
-	});
-});
-
-Deno.test("cookie: CookieJar", async (t) => {
-	await t.step("get returns parsed values", () => {
+Deno.test("CookieJar", async (t) => {
+	await t.step("get/has read from the parsed header", () => {
 		const jar = new CookieJar("a=1; b=2");
 		assertEquals(jar.get("a"), "1");
-		assertEquals(jar.get("b"), "2");
-		assertEquals(jar.get("c"), undefined);
-	});
-
-	await t.step("has checks existence", () => {
-		const jar = new CookieJar("a=1");
+		assertEquals(jar.get("missing"), undefined);
 		assertEquals(jar.has("a"), true);
-		assertEquals(jar.has("b"), false);
+		assertEquals(jar.has("missing"), false);
 	});
-
-	await t.step("allCookies returns copy", () => {
+	await t.step("parsing is lazy and cached (second read reuses the same object)", () => {
 		const jar = new CookieJar("a=1");
-		const cookies = jar.allCookies();
-		cookies.b = "2";
+		const first = jar.allCookies();
+		const second = jar.allCookies();
+		assertEquals(first, second);
+	});
+	await t.step("allCookies returns a defensive copy", () => {
+		const jar = new CookieJar("a=1");
+		const copy = jar.allCookies();
+		copy.b = "2";
 		assertEquals(jar.has("b"), false);
 	});
-
-	await t.step("set overwrites same-name Set-Cookie", () => {
+	await t.step("set() updates the read-side cache immediately", () => {
+		const jar = new CookieJar("a=1");
+		jar.set("a", "2");
+		assertEquals(jar.get("a"), "2");
+	});
+	await t.step("set() replaces a prior Set-Cookie for the same name rather than appending", () => {
 		const jar = new CookieJar(null);
 		jar.set("a", "1");
 		jar.set("a", "2");
 		assertEquals(jar.headers.length, 1);
 		assertEquals(jar.headers[0].startsWith("a=2"), true);
 	});
-
-	await t.step("set updates parsed cache", () => {
-		const jar = new CookieJar("a=1");
-		jar.set("a", "2");
-		assertEquals(jar.get("a"), "2");
+	await t.step("set() for distinct names appends distinct headers", () => {
+		const jar = new CookieJar(null);
+		jar.set("a", "1");
+		jar.set("b", "2");
+		assertEquals(jar.headers.length, 2);
 	});
-
-	await t.step("delete removes from cache and adds Set-Cookie", () => {
+	await t.step("delete() removes from the read-side and appends a deletion header", () => {
 		const jar = new CookieJar("a=1; b=2");
 		jar.delete("a");
 		assertEquals(jar.has("a"), false);
 		assertEquals(jar.has("b"), true);
-		const deletionHeader = jar.headers.find((h) => h.startsWith("a="));
-		assertEquals(deletionHeader?.includes("Max-Age=0"), true);
+		const header = jar.headers.find((h) => h.startsWith("a="));
+		assertEquals(header?.includes("Max-Age=0"), true);
 	});
-
-	await t.step("handles null header gracefully", () => {
+	await t.step("null header: every read method degrades gracefully", () => {
 		const jar = new CookieJar(null);
-		assertEquals(jar.get("anything"), undefined);
-		assertEquals(jar.has("anything"), false);
+		assertEquals(jar.get("x"), undefined);
+		assertEquals(jar.has("x"), false);
 		assertEquals(jar.allCookies(), {});
 		assertEquals(jar.headers, []);
+	});
+	await t.step("headers getter reflects live accumulated Set-Cookie state, not a snapshot", () => {
+		const jar = new CookieJar(null);
+		const before = jar.headers;
+		jar.set("a", "1");
+		assertNotEquals(before.length, jar.headers.length);
 	});
 });
