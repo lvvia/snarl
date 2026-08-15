@@ -1,12 +1,13 @@
 {
 	"name": "@404/imouto",
 	"description": "a minimal full-stack web framework for deno",
-	"version": "0.2.1",
+	"version": "0.2.2",
 	"license": "MPL-2.0",
 	"exports": {
 		".": "./src/mod.ts",
 		"./jsx-runtime": "./src/jsx-runtime.ts",
-		"./jsx-dev-runtime": "./src/jsx-runtime.ts"
+		"./jsx-dev-runtime": "./src/jsx-runtime.ts",
+		"./hash": "./src/hash/mod.ts"
 	},
 	"compilerOptions": {
 		"jsx": "react-jsx",
