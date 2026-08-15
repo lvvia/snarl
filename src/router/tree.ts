@@ -13,7 +13,7 @@ export interface RadixNode<T> {
 	payload: T | null;
 }
 
-export function createNode<T>(segment: string, optional = false): RadixNode<T> {
+export function createNode<T = string>(segment: string, optional = false): RadixNode<T> {
 	return {
 		segment,
 		optional,
@@ -39,7 +39,17 @@ export function canPossiblyMatch<T>(
 	caseSensitive: boolean,
 ): boolean {
 	if (root.paramChild || root.wildcardChild) return true;
-	return root.children.has(normaliseSegment(firstSegment, caseSensitive));
+
+	const seg = normaliseSegment(firstSegment, caseSensitive);
+	const child = root.children.get(seg);
+
+	if (!child) return false;
+
+	if (caseSensitive && child.segment !== firstSegment) {
+		return false;
+	}
+
+	return true;
 }
 
 export function getSegments(pattern: string, trailingSlashSensitive: boolean): string[] {
@@ -102,7 +112,7 @@ export function insertRoute<T>(
 			const seg = normaliseSegment(rawSeg, caseSensitive);
 			child = node.children.get(seg) ?? null;
 			if (!child) {
-				child = createNode(seg);
+				child = createNode(rawSeg);
 				node.children.set(seg, child);
 			}
 		}
@@ -147,7 +157,7 @@ export function matchRoute<T>(
 	const seg = normaliseSegment(segments[idx], caseSensitive);
 
 	const staticChild = node.children.get(seg);
-	if (staticChild) {
+	if (staticChild && (!caseSensitive || staticChild.segment === segments[idx])) {
 		const result = matchRoute(staticChild, segments, idx + 1, params, options);
 		if (result) return result;
 	}
