@@ -10,7 +10,6 @@
 		"./jsx-dev-runtime": "./src/jsx-runtime.ts"
 	},
 	"tasks": {
-		"dev": "deno run --allow-net --watch src/main.tsx",
 		"bench": "deno task --cwd=bench start",
 		"bench:gen": "deno task --cwd=bench generate"
 	},
