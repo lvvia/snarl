@@ -7,7 +7,6 @@
 export * from "./context/mod.ts";
 export * from "./router/mod.ts";
 export * from "./middleware/mod.ts";
-export * from "./router/mod.ts";
 export * from "./types.ts";
 export * from "./errors.ts";
 export * from "./cookie.ts";

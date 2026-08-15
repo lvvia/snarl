@@ -177,6 +177,15 @@ export function createDispatcher(state: DispatchState): {
 
 	function handleError(err: unknown, ctx: Context<any>): Response | Promise<Response> {
 		if (err instanceof HttpError) {
+			const acceptsHtml = ctx.request.headers.get("accept")?.includes("text/html");
+			if (acceptsHtml) {
+				const html =
+					`<!DOCTYPE html><html><body><h1>${err.status} ${err.message}</h1></body></html>`;
+				return new Response(html, {
+					status: err.status,
+					headers: { "Content-Type": "text/html; charset=utf-8", ...(err.headers || {}) },
+				});
+			}
 			return ctx.json({ error: err.message }, { status: err.status, headers: err.headers });
 		}
 		return state.config.onError(err as Error, ctx);

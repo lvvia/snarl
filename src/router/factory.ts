@@ -80,9 +80,10 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 
 	const routes = createEmptyRouteTable();
 	const exactRoutes = createEmptyExactTable();
-	const trees: Record<Method, RadixNode<RoutePayload>> = Object.fromEntries(
-		httpMethods.map((m) => [m, createNode("")]),
-	) as Record<Method, RadixNode<RoutePayload>>;
+	const trees = Object.fromEntries(httpMethods.map((m) => [m, createNode("")])) as Record<
+		Method,
+		RadixNode<RoutePayload>
+	>;
 
 	const middlewares: Middleware[] = [];
 	const manager = new MiddlewareManager(middlewares);
@@ -91,6 +92,7 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 		routes,
 		middlewares,
 		config,
+
 		use(...mw: (MiddlewareLike | MiddlewareLike[])[]) {
 			for (const entry of mw.flat()) manager.use(entry);
 			return r as HttpRouter;
@@ -98,6 +100,7 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 		middlewareOrder() {
 			return manager.order();
 		},
+
 		on<P extends string | PreciseURLPattern<any> | URLPattern>(
 			method: Method,
 			path: P,
