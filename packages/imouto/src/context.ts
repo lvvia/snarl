@@ -9,7 +9,7 @@
  */
 
 import { AsyncLocalStorage } from "node:async_hooks";
-import { Context, Middleware } from "@july/snarl";
+import { Context, Middleware, MiddlewarePriority, provideMiddleware } from "@july/snarl";
 
 const storage = new AsyncLocalStorage<Context>();
 
@@ -41,3 +41,9 @@ export function requireContext(
 export function context(): Middleware {
 	return (ctx, next) => storage.run(ctx, next);
 }
+
+provideMiddleware({
+	name: "context",
+	priority: MiddlewarePriority.first,
+	factory: () => context(),
+});

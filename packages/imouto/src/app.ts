@@ -90,8 +90,16 @@ export async function createApp(
 	router.use(
 		context(),
 		scopedCss(),
-		staticFiles(staticDir, { maxAge, immutable: immutableStatic }),
-		transform(minify()),
+		{
+			name: "static-files",
+			factory: () => staticFiles(staticDir, { maxAge, immutable: immutableStatic }),
+		},
+		{
+			name: "html-transform",
+			priority: 600,
+			dependencies: ["context"],
+			factory: () => transform(minify()),
+		},
 		logger(),
 	);
 
