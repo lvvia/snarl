@@ -5,6 +5,7 @@
  */
 
 import type { Middleware } from "../context/middleware.ts";
+import { provideMiddleware } from "./manager.ts";
 
 /**
  * middleware that parses `application/json` bodies into `ctx.bodyCache`
@@ -55,3 +56,6 @@ export function formParser(): Middleware {
 		return next();
 	};
 }
+
+provideMiddleware({ name: "json-parser", factory: () => jsonParser() });
+provideMiddleware({ name: "form-parser", factory: () => formParser() });

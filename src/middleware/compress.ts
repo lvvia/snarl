@@ -5,6 +5,7 @@
  */
 
 import type { Middleware } from "../context/middleware.ts";
+import { provideMiddleware } from "./manager.ts";
 
 type Encoding = "gzip" | "deflate";
 
@@ -101,3 +102,5 @@ function toReadableStream(body: BodyInit): ReadableStream<Uint8Array<ArrayBuffer
 	if (body instanceof Blob) return body.stream();
 	return new Response(body as any).body;
 }
+
+provideMiddleware({ name: "compress", priority: 250, factory: () => compress() });

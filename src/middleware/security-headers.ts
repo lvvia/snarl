@@ -5,6 +5,7 @@
  */
 
 import type { Middleware } from "../context/middleware.ts";
+import { provideMiddleware } from "./manager.ts";
 
 export type CspDirective =
 	| "default-src"
@@ -106,3 +107,5 @@ export function securityHeaders(options: SecurityHeadersOptions = {}): Middlewar
 		return state;
 	};
 }
+
+provideMiddleware({ name: "security-headers", priority: 150, factory: () => securityHeaders() });

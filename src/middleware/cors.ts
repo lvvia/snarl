@@ -7,6 +7,7 @@
 import type { Context } from "../context/core.ts";
 import { type Middleware, MutableResponse } from "../context/middleware.ts";
 import { httpMethods } from "../types.ts";
+import { provideMiddleware } from "./manager.ts";
 
 export type OriginFn = (
 	origin: string | null,
@@ -106,3 +107,5 @@ async function applyOrigin(
 	}
 	headers.set("Access-Control-Allow-Origin", origin);
 }
+
+provideMiddleware({ name: "cors", priority: 200, factory: () => cors() });

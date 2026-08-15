@@ -134,6 +134,8 @@ export function jsxEscape(value: unknown): string | Promise<string> {
 
 export function jsxAttr(k: string, v: unknown): string {
 	if (v == null || v === false) return "";
+	if (typeof v === "function") return "";
+
 	if (!SAFE_ATTR_RE.test(k)) {
 		console.warn("jsx-runtime:", `refusing to render unsafe attribute name: ${JSON.stringify(k)}`);
 		return "";

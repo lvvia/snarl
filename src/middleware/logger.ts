@@ -6,6 +6,7 @@
 
 import type { Context, Middleware } from "../context/mod.ts";
 import { blue, dim, green, red, reset, yellow } from "@std/fmt/colors";
+import { provideMiddleware } from "./manager.ts";
 
 function statusColor(status: number): typeof reset {
 	if (status >= 200 && status < 300) return green;
@@ -42,3 +43,5 @@ export function logger(options: {
 		return response;
 	};
 }
+
+provideMiddleware({ name: "logger", priority: 50, factory: () => logger() });

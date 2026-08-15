@@ -127,7 +127,10 @@ export function staticFiles(root: string, options: StaticFilesOptions = {}): Mid
 				filepath = join(filepath, index);
 				stat = await Deno.stat(filepath);
 			}
-		} catch {
+		} catch (err) {
+			if (!(err instanceof Deno.errors.NotFound)) {
+				throw err;
+			}
 			return next();
 		}
 
@@ -190,13 +193,11 @@ export function staticFiles(root: string, options: StaticFilesOptions = {}): Mid
 		}
 		headers.set("Content-Length", stat.size.toString());
 
-		let file: Deno.FsFile;
 		try {
-			file = await Deno.open(filepath, { read: true });
+			using file = await Deno.open(filepath, { read: true });
+			return new Response(file.readable, { headers });
 		} catch {
 			return next();
 		}
-
-		return new Response(file.readable, { headers });
 	};
 }

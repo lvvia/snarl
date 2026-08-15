@@ -65,6 +65,8 @@ class MemoryStore implements RateLimitStore {
 			this.timer = null;
 			if (hasActiveKeys) this.scheduleCleanup();
 		}, this.windowMs);
+
+		if (this.timer !== null) Deno.unrefTimer(this.timer);
 	}
 }
 
