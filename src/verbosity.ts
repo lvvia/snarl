@@ -13,10 +13,10 @@ export interface LogSink {
 }
 
 const consoleSink: LogSink = {
-	info: console.log,
-	warn: console.warn,
-	error: console.error,
-	success: console.log,
+	info: (_, ...args) => console.info(...args),
+	warn: (_, ...args) => console.warn(...args),
+	error: (_, ...args) => console.error(...args),
+	success: (_, ...args) => console.log(...args),
 	raw: console.log,
 };
 
