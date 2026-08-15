@@ -28,7 +28,7 @@ function purrmux0(input: string) {
 	return h >>> 0;
 }
 
-export default function meowmix0(input: string) {
+export default function meowmix0(input: string): string {
 	if (!input) return "";
 	let bits = purrmux0(input);
 	let mrrp = "";
