@@ -205,3 +205,12 @@ export function purgeDeps(node: ReactiveNode): void {
 		edge = unlink(edge, node);
 	}
 }
+
+export function untracked<T>(fn: () => T): T {
+	const prevSub = setActiveSub(undefined);
+	try {
+		return fn();
+	} finally {
+		setActiveSub(prevSub);
+	}
+}
