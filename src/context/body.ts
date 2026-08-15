@@ -18,7 +18,7 @@ export interface BodyReader {
 	plain(): Promise<string>;
 
 	/** returns the body as a parsed JSON object, using the cache if present */
-	json<T = any>(): Promise<T>;
+	json<T = any>(schema?: { parse: (val: unknown) => T } | ((val: unknown) => T)): Promise<T>;
 }
 
 export function createBodyReader(ctx: Context<any>): BodyReader {
@@ -31,6 +31,16 @@ export function createBodyReader(ctx: Context<any>): BodyReader {
 			}
 			return await ctx.request.text();
 		},
-		json: async <T = any>() => (ctx.bodyCache as T) ?? await ctx.request.json(),
+		json: async <T = any>(schema?: any) => {
+			let data = ctx.bodyCache ?? await ctx.request.json();
+			if (schema) {
+				if (typeof schema === "function") {
+					data = schema(data);
+				} else if (typeof schema.parse === "function") {
+					data = schema.parse(data);
+				}
+			}
+			return data as T;
+		},
 	};
 }
