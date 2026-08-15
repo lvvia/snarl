@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+import { ReactiveAccessor } from "./accessor.ts";
 import {
 	checkDirty,
 	getActiveSub,
@@ -14,6 +15,7 @@ import {
 	purgeDeps,
 	setActiveSub,
 	shallowPropagate,
+	untracked,
 } from "./engine.ts";
 import { tag } from "./tag.ts";
 import { HasChildEffect, NodeKind, ReactiveFlags, type ReactiveNode } from "./types.ts";
@@ -24,8 +26,14 @@ export interface ComputedNode<T = unknown> extends ReactiveNode {
 	getter: (previousValue?: T) => T;
 }
 
-export interface Computed<T> {
+export interface Computed<T> extends ReactiveAccessor<T> {
 	(): T;
+
+	/**
+	 * Reactive read. Computeds are derived, writing to `.value` throws, since it's a getter-only
+	 * accessor property.
+	 */
+	readonly value: T;
 }
 
 export function computed<T>(getter: (previousValue?: T) => T): Computed<T> {
@@ -40,7 +48,25 @@ export function computed<T>(getter: (previousValue?: T) => T): Computed<T> {
 		getter,
 	};
 
-	return tag(() => readComputed(node), NodeKind.Computed);
+	const accessor = (() => readComputed(node)) as unknown as Computed<T>;
+
+	Object.defineProperty(accessor, "value", {
+		enumerable: true,
+		configurable: true,
+		get: () => readComputed(node),
+	});
+
+	accessor.peek = () => untracked(() => readComputed(node));
+	accessor.map = (fn) => computed(() => fn(readComputed(node)));
+
+	accessor[Symbol.toPrimitive] = (hint: string) => {
+		const v = readComputed(node);
+		return hint === "number" ? Number(v) : hint === "string" ? String(v) : v as string;
+	};
+	(accessor as any).toString = () => String(readComputed(node));
+	(accessor as any).valueOf = () => readComputed(node) as unknown as number;
+
+	return tag(accessor, NodeKind.Computed);
 }
 
 export function readComputed<T>(node: ComputedNode<T>): T {

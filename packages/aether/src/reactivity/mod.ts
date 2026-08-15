@@ -45,3 +45,4 @@ export { type Computed, computed } from "./computed.ts";
 export { type Dispose, effect, effectScope } from "./effect.ts";
 export { flush, getActiveSub, setActiveSub, trigger, untracked } from "./engine.ts";
 export type { Link, ReactiveNode } from "./types.ts";
+export type { ReactiveAccessor } from "./accessor.ts";
