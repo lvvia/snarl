@@ -1,32 +1,34 @@
 # snarl
 
-a minimal web framework for deno
+a minimal, batteries-included web framework for deno. it provides a type-safe routing core, a
+composable middleware system with automatic dependency resolution, and native streaming primitives
 
 ## features
 
-- tiny core, zero runtime bloat; built entirely on top of deno's stdlib
+- tiny core, built entirely on top of deno's `@std/*`
+- declarative middleware with priority tiers and automatic dependency resolution
 - flexible type-safe routing with first-class support for path parameters, route groups, and
-  wildcard methods
+  wildcard methods w/ full inference :3
 - chainable context helpers and type-safe request/response handling
 - composable middleware stack with built-in support for CORS, logging, security headers, rate
   limiting
-- robust file serving featuring ETag caching, `Range` requests, and security options (e.g. dotfile
-  protection)
-- native SSE and WebSockets support
-- built-in jsx/tsx renderer
-- multipart file uploads and automatic body parsing
+- ETag caching (weak + strong), `Range` requests, dotfile protection, and streaming responses
+- first-class SSE and WebSocket support with abort-safe async iterables
+- lightweight server-side rendering with escaping, style objects, and fragment support
+- automatic JSON, form-urlencoded, and multipart file upload handling with size limits
+- CORS, CSP, HSTS, referrer policy, and rate limiting as composable middleware
 - global error handling and cookie jar management
 
 ## quick start
 
-```json
-// ... deno.json
+```jsonc
+// deno.json
 {
 	"imports": {
 		"@july/snarl": "jsr:@july/snarl"
 	},
 	"compilerOptions": {
-		"jsx": "precompile",
+		"jsx": "react-jsx",
 		"jsxImportSource": "@july/snarl",
 		"lib": ["deno.ns", "dom", "dom.iterable"]
 	}
@@ -42,17 +44,15 @@ app.use(logger());
 
 app.get("/", (ctx) => {
 	return ctx.html(
-		"<!DOCTYPE html>" + (
-			<html>
-				<head>
-					<title>example paige</title>
-				</head>
-				<body>
-					<h1>welcom</h1>
-					<p>i meant page* haiiiii</p>
-				</body>
-			</html>
-		),
+		<html>
+			<head>
+				<title>example paige</title>
+			</head>
+			<body>
+				<h1>welcom</h1>
+				<p>i meant page* haiiiii</p>
+			</body>
+		</html>,
 	);
 });
 
@@ -62,9 +62,18 @@ app.get("/users/:id", (ctx) => {
 });
 
 app.post("/users", async (ctx) => {
-	const body = await ctx.body();
+	const body = await ctx.body.json();
 	return ctx.created(body);
 });
 
-Deno.serve(app.fetch);
+app.serve();
 ```
+
+## ecosystem
+
+| Package          | Description                                             |
+| :--------------- | :------------------------------------------------------ |
+| **@july/snarl**  | core: router, middleware, jsx, streaming                |
+| **@404/imouto**  | file-based routing, layout composition, app boilerplate |
+| **@404/aether**  | islands architecture, reactivity, client bundling       |
+| **@404/varnish** | response post-processing: minification, scoped CSS      |
