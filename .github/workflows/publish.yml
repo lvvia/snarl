@@ -1,13 +1,6 @@
 name: Publish
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "src/**"
-      - "packages/*/src/**"
-      - "deno.json"
-      - "packages/*/deno.json"
   workflow_dispatch:
     inputs:
       package:
