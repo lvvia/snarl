@@ -5,7 +5,14 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { canPossiblyMatch, createNode, getSegments, insertRoute, matchRoute, type RadixNode } from "@july/snarl";
+import {
+	canPossiblyMatch,
+	createNode,
+	getSegments,
+	insertRoute,
+	matchRoute,
+	type RadixNode,
+} from "@july/snarl";
 
 function match(root: RadixNode<string>, path: string, opts: Parameters<typeof matchRoute>[4] = {}) {
 	const segments = path === "/" ? [] : getSegments(path, opts.trailingSlashSensitive ?? false);
@@ -21,9 +28,12 @@ Deno.test("getSegments", async (t) => {
 	await t.step("root path yields no segments", () => {
 		assertEquals(getSegments("/", false), []);
 	});
-	await t.step("trailingSlashSensitive: trailing slash on non-root yields a trailing empty segment", () => {
-		assertEquals(getSegments("/a/", true), ["a", ""]);
-	});
+	await t.step(
+		"trailingSlashSensitive: trailing slash on non-root yields a trailing empty segment",
+		() => {
+			assertEquals(getSegments("/a/", true), ["a", ""]);
+		},
+	);
 	await t.step("not trailingSlashSensitive: trailing slash produces no extra segment", () => {
 		assertEquals(getSegments("/a/", false), ["a"]);
 	});
