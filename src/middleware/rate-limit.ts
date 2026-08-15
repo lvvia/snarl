@@ -25,7 +25,7 @@ class MemoryStore implements RateLimitStore {
 	private requests = new Map<string, { count: number; reset: number }>();
 	private timer: ReturnType<typeof setTimeout> | null = null;
 
-	constructor(private windowMs: number) {}
+	constructor(private windowMs: number, private maxSize: number = 10_000) {}
 
 	increment(key: string, windowMs: number): Promise<{ count: number; reset: number }> {
 		const now = Date.now();
@@ -36,6 +36,12 @@ class MemoryStore implements RateLimitStore {
 			: { count: 1, reset: now + windowMs };
 
 		this.requests.set(key, entry);
+
+		if (this.requests.size > this.maxSize) {
+			const firstKey = this.requests.keys().next().value;
+			if (firstKey !== undefined) this.requests.delete(firstKey);
+		}
+
 		this.scheduleCleanup();
 		return Promise.resolve(entry);
 	}
