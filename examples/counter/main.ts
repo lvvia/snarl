@@ -5,7 +5,7 @@
  */
 
 import { createApp } from "@404/imouto";
-import { aether } from "@404/aether";
+import { aether } from "@404/aether/server";
 
 const app = await createApp({ routesDir: "./routes" });
 
