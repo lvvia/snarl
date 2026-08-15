@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { ReactiveAccessor } from "./accessor.ts";
+import type { ReactiveAccessor } from "./accessor.ts";
 import {
 	checkDirty,
 	getActiveSub,
