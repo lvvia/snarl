@@ -8,7 +8,8 @@ import { dirname, join, relative, resolve, toFileUrl } from "@std/path";
 import { analyseIslandSource, type AstNode, parseSource, walk } from "./analyser.ts";
 import { registerIslandComponent } from "./registry.ts";
 import { walk as fsWalk } from "@std/fs";
-import { bold, cyan, dim, green, red, yellow } from "@std/fmt/colors";
+import { bold, cyan, dim } from "@std/fmt/colors";
+import { log } from "@july/snarl/verbosity";
 
 export function extractImportSpecifiers(source: string): string[] {
 	const ast = parseSource(source);
@@ -88,7 +89,7 @@ async function expandEntrypoints(entrypoints: string[]): Promise<string[]> {
 		try {
 			stat = await Deno.stat(resolved);
 		} catch {
-			console.log(`  ${yellow("⚠")} skipped missing entrypoint: ${dim(resolved)}`);
+			log.warn("aether/discover", `skipped missing entrypoint: ${dim(resolved)}`);
 			continue;
 		}
 		if (stat.isFile) {
@@ -113,10 +114,10 @@ export async function discoverAndRegisterIslands(entrypoints: string[]): Promise
 	const expandedFiles = await expandEntrypoints(entrypoints);
 
 	if (expandedFiles.length === 0) {
-		return console.log(`  ${yellow("⚠")} no files found in entrypoints`);
+		return log.warn("aether/discover", `no files found in entrypoints`);
 	}
 
-	console.log(cyan(bold("\n  · discovering islands:")));
+	log.warn("aether/discover", cyan(bold("\n  · discovering islands:")));
 
 	const seen = new Set<string>();
 	const queue = [...expandedFiles];
@@ -131,7 +132,7 @@ export async function discoverAndRegisterIslands(entrypoints: string[]): Promise
 		try {
 			source = await Deno.readTextFile(path);
 		} catch (err) {
-			console.log(`  ${red("✗")} failed to read: ${dim(path)} ${dim(String(err))}`);
+			log.error("aether/discover", `failed to read: ${dim(path)} ${dim(String(err))}`);
 			continue;
 		}
 
@@ -154,13 +155,15 @@ export async function discoverAndRegisterIslands(entrypoints: string[]): Promise
 				if (registered) {
 					const reason = analysis.reasons.join(", ");
 					const file = relative(Deno.cwd(), path);
-					console.log(
-						`    ${green("+")} ${dim(file)} ${dim(`(${reason})`)}`,
+					log.success(
+						"aether/discover",
+						`${dim(file)} ${dim(`(${reason})`)}`,
 					);
 				}
 			} catch (err) {
-				console.log(
-					`    ${red("-")} failed to register: ${dim(path)} ${dim(String(err))}`,
+				log.error(
+					"aether/discover",
+					`failed to register: ${dim(path)} ${dim(String(err))}`,
 				);
 			}
 		}
@@ -171,7 +174,8 @@ export async function discoverAndRegisterIslands(entrypoints: string[]): Promise
 		}
 	}
 
-	console.log(
+	log.info(
+		"aether",
 		dim(`\n  ${registeredCount} island${registeredCount !== 1 ? "s" : ""} registered\n`),
 	);
 }

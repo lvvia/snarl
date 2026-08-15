@@ -10,6 +10,7 @@ import { formatRoute, formatRouteFile } from "./format.ts";
 import { dim } from "@std/fmt/colors";
 import type { ErrorModule, LayoutModule } from "./types.ts";
 import { wrapHandler } from "./wrap.ts";
+import { log } from "@july/snarl/verbosity";
 
 export function registerRoute(
 	router: Router,
@@ -22,7 +23,6 @@ export function registerRoute(
 	fsPath: string,
 	base: string,
 	registered: Set<string>,
-	verbose: boolean,
 ): void {
 	const key = `${method}:${path}`;
 	const start = performance.now();
@@ -31,10 +31,11 @@ export function registerRoute(
 	const final: Handler<any> = middlewares.length ? compose(middlewares, wrapped) : wrapped;
 	(router as any)[method.toLowerCase()](path, final);
 
-	if (!verbose || registered.has(key)) return;
+	if (registered.has(key)) return;
 	registered.add(key);
-	console.log(
-		`    ${formatRoute(method, path)} ${formatRouteFile(fsPath.slice(base.length + 1))} ${
+	log.info(
+		"router",
+		`${formatRoute(method, path)} ${formatRouteFile(fsPath.slice(base.length + 1))} ${
 			dim(`${(performance.now() - start).toFixed(2)}ms`)
 		}`,
 	);

@@ -22,6 +22,7 @@ import { context, minify, scanRoutes } from "./mod.ts";
 import { collectHeadContent, injectIntoHead } from "./head.ts";
 import { injectScopedStylesheet, scopedCss } from "@404/varnish";
 import { dim } from "@std/fmt/colors";
+import { log } from "@july/snarl/verbosity";
 
 export interface AppOptions {
 	staticDir?: string;
@@ -92,8 +93,8 @@ export async function createApp(
 
 	const router = createRouter();
 	router.config.onListen = ({ hostname, port }) => {
-		console.log(dim(`  listening on http://${hostname}:${port}/`));
-		console.log(dim(`  env: ${env}\n`));
+		log.raw(dim(`  listening on http://${hostname}:${port}/`));
+		log.raw(dim(`  env: ${env}\n`));
 	};
 
 	router.use(

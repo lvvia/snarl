@@ -29,6 +29,7 @@ import { scanDir } from "./scanner.ts";
 import { registerRoute } from "./registry.ts";
 import { collectDirAncestors, rateRouteSpecificity } from "./paths.ts";
 import type { LayoutModule, RootRouteMetadata, ScanEntry, ScanOptions } from "./types.ts";
+import { log } from "@july/snarl/verbosity";
 
 function wireNotFound(router: Router, rootMeta: RootRouteMetadata | undefined): void {
 	const NotFound = rootMeta?.notFound?.default;
@@ -55,20 +56,19 @@ export async function scanRoutes(
 	const base = opts.from
 		? join(dirname(fromFileUrl(opts.from)), opts.dir)
 		: join(Deno.cwd(), opts.dir);
-	const verbose = opts.verbose ?? Deno.env.get("ENV") !== "production";
 
 	const entries: ScanEntry[] = [];
 	const dirMetas = new Map<string, RootRouteMetadata>();
 
-	if (verbose) console.log(cyan(bold("\n  · scanning routes:")));
+	log.raw(cyan(bold("\n  · scanning routes:")));
 	const scanStart = performance.now();
 
-	await scanDir(base, base, entries, dirMetas, verbose);
+	await scanDir(base, base, entries, dirMetas);
 	entries.sort((a, b) => rateRouteSpecificity(b.path) - rateRouteSpecificity(a.path));
 	wireNotFound(router, dirMetas.get(base));
 
 	const registered = new Set<string>();
-	if (verbose && entries.length) console.log("");
+	if (entries.length) log.raw("");
 
 	for (const { path, fsPath, module } of entries) {
 		const ancestors = collectDirAncestors(fsPath, base, dirMetas);
@@ -90,19 +90,16 @@ export async function scanRoutes(
 					fsPath,
 					base,
 					registered,
-					verbose,
 				);
 			}
 		}
 	}
 
-	if (verbose) {
-		console.log(
-			dim(
-				`\n  ${registered.size} routes registered in ${
-					(performance.now() - scanStart).toFixed(2)
-				}ms\n`,
-			),
-		);
-	}
+	log.raw(
+		dim(
+			`\n  ${registered.size} routes registered in ${
+				(performance.now() - scanStart).toFixed(2)
+			}ms\n`,
+		),
+	);
 }

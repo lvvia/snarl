@@ -9,6 +9,7 @@ import type { Context, JSX } from "@july/snarl";
 import { markStyleUsed, scopeCss, styleRegistry } from "@404/varnish";
 import { getContext } from "./context.ts";
 import { boring } from "./hash/mod.ts";
+import { log } from "@july/snarl/verbosity";
 
 export interface Css {
 	/**
@@ -103,7 +104,7 @@ function registerScope(scope: string, compiled: string, overwrite: boolean = fal
 	while (!overwrite && existing !== undefined && existing !== compiled) {
 		if (attempts++ == 5) {
 			if (Deno.env.get("ENV") !== "production") {
-				console.error("@july/twist:", `css scope collision on "${scope}"`);
+				log.error("@july/twist", `css scope collision on "${scope}"`);
 			}
 			break;
 		}

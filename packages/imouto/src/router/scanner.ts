@@ -10,16 +10,15 @@ import { applySpecialFile } from "./special-files.ts";
 import { makeRoutePath } from "./paths.ts";
 import type { RootRouteMetadata, ScanEntry } from "./types.ts";
 import { walk } from "@std/fs";
+import { log } from "@july/snarl/verbosity";
 
-async function importRoute(base: string, file: string, verbose: boolean): Promise<ScanEntry> {
+async function importRoute(base: string, file: string): Promise<ScanEntry> {
 	const rel = file.slice(base.length + 1);
 	const start = performance.now();
 
 	const module = await import(toFileUrl(file).href);
+	log.info("router", dim(`↓ imported ${rel} in ${(performance.now() - start).toFixed(2)}ms`));
 
-	if (verbose) {
-		console.log(dim(`  ↓ imported ${rel} in ${(performance.now() - start).toFixed(2)}ms`));
-	}
 	return {
 		path: makeRoutePath(rel),
 		fsPath: file,
@@ -63,7 +62,6 @@ export async function scanDir(
 	root: string,
 	entries: ScanEntry[],
 	metas: Map<string, RootRouteMetadata>,
-	verbose: boolean,
 ): Promise<void> {
 	const meta: RootRouteMetadata = { middlewares: [] };
 	metas.set(root, meta);
@@ -72,7 +70,7 @@ export async function scanDir(
 
 	await Promise.all(special.map((file) => applySpecialFile(meta, file)));
 	const importedRoutes = await Promise.all(
-		routes.map((file) => importRoute(base, file, verbose)),
+		routes.map((file) => importRoute(base, file)),
 	);
 
 	entries.push(...importedRoutes);

@@ -12,6 +12,7 @@ import type {
 	NotFoundModule,
 	RootRouteMetadata,
 } from "./types.ts";
+import { log } from "@july/snarl/verbosity";
 
 type SpecialAssigner = (meta: RootRouteMetadata, mod: any) => void;
 
@@ -37,7 +38,7 @@ export async function applySpecialFile(meta: RootRouteMetadata, fsPath: string):
 	const assign = match && SPECIAL_FILE_HANDLERS[match[1]];
 
 	if (!assign) {
-		console.warn(`imouto: unrecognised special file "${name}", ignoring`);
+		log.warn("imouto", `unrecognised special file "${name}", ignoring`);
 		return;
 	}
 	assign(meta, await import(toFileUrl(fsPath).href));

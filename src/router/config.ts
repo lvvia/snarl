@@ -6,6 +6,7 @@
 
 import type { ErrorHandler, Handler } from "../context/middleware.ts";
 import type { ReplaceReturnType } from "../types.ts";
+import { log } from "@july/snarl/verbosity";
 
 export interface RouterConfig {
 	prefix: string;
@@ -31,7 +32,7 @@ export interface RouterConfig {
 
 function defaultOnError(): ErrorHandler {
 	return (error, ctx) => (
-		console.error("route error", error),
+		log.error("router", "route error", error),
 			ctx.json({ error: "Internal Server Error", message: error.message }, { status: 500 })
 	);
 }

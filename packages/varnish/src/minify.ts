@@ -6,6 +6,7 @@
 
 import type { Middleware } from "@july/snarl";
 import { minify as mini } from "@minify-html/deno";
+import { log } from "@july/snarl/verbosity";
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
@@ -102,7 +103,7 @@ function minifyCssFromBytes(src: Uint8Array): Uint8Array {
 		return encoder.encode(style.slice(7, -8));
 	}
 
-	console.warn("minify:", "unexpected minify-html output shape for standalone css");
+	log.warn("minify", "unexpected minify-html output shape for standalone css");
 	return src;
 }
 

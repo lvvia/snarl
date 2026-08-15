@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+import { log } from "@july/snarl/verbosity";
+
 export const voidTags: ReadonlySet<string> = new Set([
 	"area",
 	"base",
@@ -137,7 +139,7 @@ export function jsxAttr(k: string, v: unknown): string {
 	if (typeof v === "function") return "";
 
 	if (!SAFE_ATTR_RE.test(k)) {
-		console.warn("jsx-runtime:", `refusing to render unsafe attribute name: ${JSON.stringify(k)}`);
+		log.warn("jsx-runtime", `refusing to render unsafe attribute name: ${JSON.stringify(k)}`);
 		return "";
 	}
 
@@ -262,7 +264,7 @@ function renderJsx(element: JSX.Element): string | Promise<string> {
 		try {
 			return renderTrusted(tag(props));
 		} catch (error) {
-			console.error("snarl/jsx:", "error rendering component:", error);
+			log.error("snarl/jsx:", "error rendering component:", error);
 			return `<!-- error rendering component -->`;
 		}
 	}
