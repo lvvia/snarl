@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { chain, Context, Middleware } from "@july/snarl";
+import { chain, Context, Middleware, MiddlewarePriority, provideMiddleware } from "@july/snarl";
 import { splitDoctype } from "./html.ts";
 
 /** hash -> compiled scoped CSS content, populated at module load time */
@@ -109,3 +109,9 @@ export function styleScopeInjection(): Middleware {
 export function scopedStyling(): Middleware {
 	return chain(scopedCss(), styleScopeInjection());
 }
+
+provideMiddleware({
+	name: "scoped-css",
+	priority: MiddlewarePriority.normal,
+	factory: () => scopedStyling(),
+});
