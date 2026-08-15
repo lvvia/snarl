@@ -9,7 +9,7 @@ import { jsx as snarl$jsx } from "@july/snarl/jsx-runtime";
 
 import { island } from "./server/island.ts";
 import { getIslandMeta } from "./server/registry.ts";
-import { isReactive } from "@404/aether/reactivity";
+import { isReactive } from "./reactivity/mod.ts";
 
 //deno-lint-ignore ban-types
 const wrappers = new WeakMap<Function, ReturnType<typeof island>>();
