@@ -190,7 +190,7 @@ function renderTrustedArray(nodes: unknown[]): string | Promise<string> {
 	const len = nodes.length;
 	if (len === 0) return "";
 
-	let html = "", hasAsync = false;
+	let hasAsync = false;
 	const parts = new Array(len);
 	for (let i = 0; i < len; i++) {
 		const r = renderTrusted(nodes[i]);
@@ -198,12 +198,10 @@ function renderTrustedArray(nodes: unknown[]): string | Promise<string> {
 
 		if (typeof r !== "string") {
 			hasAsync = true;
-		} else if (!hasAsync) {
-			html += r;
 		}
 	}
 
-	if (!hasAsync) return html;
+	if (!hasAsync) return parts.join("");
 	return Promise.all(parts).then((resolved) => resolved.join(""));
 }
 
