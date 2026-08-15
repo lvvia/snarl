@@ -11,6 +11,7 @@ export * from "./types.ts";
 export * from "./errors.ts";
 export * from "./cookie.ts";
 export * from "./stream.ts";
-export * from "./jsx-runtime.ts";
+export * from "./permissions.ts";
 
+export * from "./jsx-runtime.ts";
 export type { JSX } from "./jsx-runtime.ts";

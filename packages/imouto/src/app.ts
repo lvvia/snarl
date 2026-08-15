@@ -23,6 +23,7 @@ import { collectHeadContent, injectIntoHead } from "./head.ts";
 import { injectScopedStylesheet, scopedCss } from "@404/varnish";
 import { dim } from "@std/fmt/colors";
 import { log } from "@july/snarl/verbosity";
+import { preflightPermissions } from "../../../src/permissions.ts";
 
 export interface AppOptions {
 	staticDir?: string;
@@ -36,16 +37,15 @@ export interface AppOptions {
 	logger?: boolean | LoggerOptions | MiddlewareLike;
 }
 
-const DEFAULT_APP_OPTIONS: Required<Omit<AppOptions, "logger">> = {
+const DEFAULT_APP_OPTIONS: Required<Omit<AppOptions, "logger" | "env">> = {
 	staticDir: "./static",
 	routesDir: "./src/routes",
-	env: Deno.env.get("ENV") || "development",
 	immutableStatic: false,
 	maxAge: 3600,
 	verbose: true,
 };
 
-export function transform(mini: ReturnType<typeof minify>): Middleware {
+export function transform(mini: Awaited<ReturnType<typeof minify>>): Middleware {
 	return async (ctx, next) => {
 		const response = await next();
 
@@ -77,17 +77,28 @@ export function transform(mini: ReturnType<typeof minify>): Middleware {
 export async function createApp(
 	options: AppOptions = {},
 ): Promise<ReturnType<typeof createRouter>> {
+	await preflightPermissions([
+		{
+			descriptor: { name: "env" },
+			reason: "get dev/prod/esbuild/ts-blank-space required environment vars",
+		},
+		{ descriptor: { name: "read" }, reason: "read routes and static files" },
+	], { strict: true });
+
+	const defaultEnv = Deno.env.get("ENV") || "development";
+
 	const {
 		staticDir,
 		routesDir,
-		env,
 		immutableStatic,
+		env,
 		verbose,
 		maxAge,
 	} = {
 		...DEFAULT_APP_OPTIONS,
 		...options,
-		verbose: options?.verbose ?? (options?.env ?? DEFAULT_APP_OPTIONS.env) !== "production",
+		env: options?.env ?? defaultEnv,
+		verbose: options?.verbose ?? (options?.env ?? defaultEnv) !== "production",
 		maxAge: options?.maxAge ?? (options?.immutableStatic ? 31536000 : 3600),
 	};
 
@@ -102,13 +113,17 @@ export async function createApp(
 		scopedCss(),
 		{
 			name: "static-files",
+			permissions: [{
+				descriptor: { name: "read", path: staticDir },
+				reason: `to serve static files from "${staticDir}"`,
+			}],
 			factory: () => staticFiles(staticDir, { maxAge, immutable: immutableStatic }),
 		},
 		{
 			name: "html-transform",
 			priority: 600,
 			dependencies: ["context"],
-			factory: () => transform(minify()),
+			factory: async () => transform(await minify()),
 		},
 		logger(),
 	);

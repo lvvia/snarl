@@ -101,5 +101,20 @@ provideMiddleware({
 	name: "aether",
 	priority: 800,
 	dependencies: ["context"],
-	factory: () => aether(),
+	factory: () => aether({ entrypoints: ["./routes"] }),
+	permissions: [
+		{ descriptor: { name: "run", command: "esbuild" }, reason: "to bundle island components" },
+		{
+			descriptor: { name: "env", variable: "ESBUILD_BINARY_PATH" },
+			reason: "to locate the esbuild binary",
+		},
+		{
+			descriptor: { name: "read" } as Deno.PermissionDescriptor,
+			reason: `to discover islands`,
+		},
+		{
+			descriptor: { name: "env", variable: "TSC_WATCHFILE" },
+			reason: "ts-blank-space",
+		},
+	],
 });

@@ -5,14 +5,13 @@
  */
 
 import { dirname, join, relative, resolve, toFileUrl } from "@std/path";
-import { analyseIslandSource, type AstNode, parseSource, walk } from "./analyser.ts";
+import { analyseIslandSource, type AstNode, walk } from "./analyser.ts";
 import { registerIslandComponent } from "./registry.ts";
 import { walk as fsWalk } from "@std/fs";
 import { bold, cyan, dim } from "@std/fmt/colors";
 import { log } from "@july/snarl/verbosity";
 
-export function extractImportSpecifiers(source: string): string[] {
-	const ast = parseSource(source);
+export function extractImportSpecifiers(ast: AstNode): string[] {
 	const specs: string[] = [];
 
 	walk(ast, (node: AstNode) => {
@@ -26,8 +25,7 @@ export function extractImportSpecifiers(source: string): string[] {
 	return specs;
 }
 
-export function hasComponentExport(source: string): boolean {
-	const ast = parseSource(source);
+export function hasComponentExport(ast: AstNode): boolean {
 	const isComponentName = (name?: string) => !!name && /^[A-Z]/.test(name);
 	let found = false;
 
@@ -136,9 +134,9 @@ export async function discoverAndRegisterIslands(entrypoints: string[]): Promise
 			continue;
 		}
 
-		const analysis = analyseIslandSource(source);
+		const analysis = await analyseIslandSource(source);
 
-		if (analysis.isIsland && analysis.confidence !== "none" && hasComponentExport(source)) {
+		if (analysis.isIsland && analysis.confidence !== "none" && hasComponentExport(analysis.ast)) {
 			const moduleUrl = toFileUrl(path).href;
 			try {
 				const mod = await import(moduleUrl);
@@ -168,7 +166,7 @@ export async function discoverAndRegisterIslands(entrypoints: string[]): Promise
 			}
 		}
 
-		for (const spec of extractImportSpecifiers(source)) {
+		for (const spec of extractImportSpecifiers(analysis.ast)) {
 			const resolved = await resolveImport(path, spec);
 			if (resolved && !seen.has(resolved)) queue.push(resolved);
 		}

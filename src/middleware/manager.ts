@@ -5,6 +5,8 @@
  */
 
 import type { Middleware } from "../context/middleware.ts";
+import type { PermissionRequirement } from "../permissions.ts";
+import { preflightPermissions } from "../permissions.ts";
 
 /**
  * conventional priority tiers. lower values sit further **outside** the
@@ -25,6 +27,8 @@ export interface MiddlewareDefinition {
 	readonly priority?: typeof MiddlewarePriority[keyof typeof MiddlewarePriority] | number;
 	/** names that must be registered and positioned outer to this middleware */
 	readonly dependencies?: readonly string[];
+	/** permissions this middleware needs. collected across the whole stack and requested once, up front */
+	readonly permissions?: readonly PermissionRequirement[];
 	/** produces the actual middleware function */
 	readonly factory: () => Middleware | Promise<Middleware>;
 	/** allow this registration to replace an earlier one with the same name */
@@ -153,6 +157,9 @@ export class MiddlewareManager {
 			}
 		};
 		for (const def of this.#defs.values()) add(def);
+
+		const permissions = [...graph.values()].flatMap((def) => def.permissions ?? []);
+		if (permissions.length) await preflightPermissions([...permissions]);
 
 		const dependents = new Map<string, string[]>();
 		const indegree = new Map<string, number>();

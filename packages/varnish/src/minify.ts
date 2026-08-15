@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import type { Middleware } from "@july/snarl";
-import { minify as mini } from "@minify-html/deno";
+import { type Middleware, preflightPermissions } from "@july/snarl";
 import { log } from "@july/snarl/verbosity";
 
 const encoder = new TextEncoder();
@@ -88,7 +87,7 @@ function concat3(a: Uint8Array, b: Uint8Array, c: Uint8Array): Uint8Array {
 const PREFIX = encoder.encode("<style>");
 const SUFFIX = encoder.encode("</style>");
 
-function minifyCssFromBytes(src: Uint8Array): Uint8Array {
+function minifyCssFromBytes(mini: any, src: Uint8Array): Uint8Array {
 	const wrapped = concat3(PREFIX, src, SUFFIX);
 
 	const data = mini(wrapped, {
@@ -129,10 +128,12 @@ function asMinifiableBody(body: BodyInit | null): MinifiableBody | null {
  * app.use(minify({ css: false, maxCacheEntries: 256 }));
  * ```
  */
-export function minify(options: MinifyOptions = {}): Middleware & {
-	perform(input: string, isCss: boolean): string;
-	perform(input: Uint8Array, isCss: boolean): string;
-} {
+export async function minify(options: MinifyOptions = {}): Promise<
+	Middleware & {
+		perform(input: string, isCss: boolean): string;
+		perform(input: Uint8Array, isCss: boolean): string;
+	}
+> {
 	const {
 		html = true,
 		css = true,
@@ -146,6 +147,15 @@ export function minify(options: MinifyOptions = {}): Middleware & {
 		return `${bytes.byteLength}:${fnv1a64(bytes)}`;
 	}
 
+	await preflightPermissions([
+		{
+			descriptor: { name: "net", host: "jsr.io" },
+			reason: "fetch minification library",
+		},
+	], { strict: true });
+
+	const { minify: mini } = await import("@minify-html/deno");
+
 	function perform(input: string | Uint8Array, isCss: boolean): string {
 		const bytes = typeof input === "string" ? encoder.encode(input) : input;
 
@@ -156,7 +166,7 @@ export function minify(options: MinifyOptions = {}): Middleware & {
 
 		let data: Uint8Array;
 		if (isCss) {
-			data = minifyCssFromBytes(bytes);
+			data = minifyCssFromBytes(mini, bytes);
 		} else {
 			data = mini(bytes, {
 				keep_spaces_between_attributes: false,
@@ -190,7 +200,7 @@ export function minify(options: MinifyOptions = {}): Middleware & {
 		state.headers.delete("Content-Length");
 
 		return state;
-	}) as ReturnType<typeof minify>;
+	}) as Awaited<ReturnType<typeof minify>>;
 
 	middleware.perform = perform;
 	return middleware;

@@ -8,14 +8,13 @@ import { boring } from "@404/imouto";
 import { fromFileUrl, join } from "@std/path";
 import { getIslandModuleUrl } from "./registry.ts";
 
-import * as esbuild from "esbuild";
-import { denoPlugin } from "@deno/esbuild-plugin";
+import type { Plugin } from "esbuild";
 
 export interface AetherServeOptions {
 	/** in-memory cache for bundled islands. defaults to a shared `Map` */
 	cache?: Map<string, string>;
 	/** extra esbuild plugins merged after the aether resolver */
-	plugins?: esbuild.Plugin[];
+	plugins?: Plugin[];
 	/** override the jsx runtime used for the client bundle */
 	jsxImportSource?: string;
 }
@@ -61,7 +60,7 @@ const KNOWN_EXPORTS: Record<string, string | (() => never) | undefined> = {
 };
 
 /** resolves `@404/aether/*` to real source paths so esbuild can bundle them */
-function aetherResolver(): esbuild.Plugin {
+function aetherResolver(): Plugin {
 	return {
 		name: "aether-resolver",
 		setup(build) {
@@ -83,6 +82,9 @@ export async function bundleIslands(
 	names: readonly string[],
 	options: AetherServeOptions,
 ): Promise<string> {
+	const { default: esbuild } = await import("esbuild");
+	const { denoPlugin } = await import("@deno/esbuild-plugin");
+
 	const source = buildEntrySource(names);
 
 	const result = await esbuild.build({

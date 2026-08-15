@@ -19,6 +19,7 @@ import { createPrefixedRouter } from "./group.ts";
 import { resolveRouterConfig, type RouterConfig } from "./config.ts";
 import { type MiddlewareLike, MiddlewareManager } from "../middleware/mod.ts";
 import { log } from "@july/snarl/verbosity";
+import { preflightPermissions } from "../permissions.ts";
 
 type Params<P> = P extends PreciseURLPattern<any> ? ParametersOf<P["raw"]>
 	: P extends string ? ParametersOf<P>
@@ -46,7 +47,7 @@ interface Router {
 
 	allRoutes(): Array<{ method: Method; pattern: Route<any>["pattern"]; metadata?: RouteMetadata }>;
 
-	serve(options?: Deno.ServeTcpOptions): ReturnType<typeof Deno.serve>;
+	serve(options?: Deno.ServeTcpOptions): Promise<ReturnType<typeof Deno.serve>>;
 }
 
 type HttpRouter =
@@ -149,9 +150,14 @@ export function createRouter(baseConfig: Partial<RouterConfig> = {}): HttpRouter
 			);
 		},
 
-		serve(opts) {
+		async serve(opts) {
 			opts ??= {} as unknown as typeof opts;
 			opts!.onListen ??= config.onListen;
+
+			await preflightPermissions([
+				{ descriptor: { name: "net" }, reason: "to accept incoming HTTP connections" },
+			], { strict: true });
+
 			manager.resolve().catch((error) => {
 				log.error("router", "middleware stack resolution failed:", error);
 				Deno.exit(1);

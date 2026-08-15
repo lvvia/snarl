@@ -4,9 +4,6 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { parseModule } from "meriyah";
-import tsBlankSpace from "ts-blank-space";
-
 export type IslandConfidence = "high" | "medium" | "none";
 
 export interface IslandAnalysis {
@@ -20,6 +17,8 @@ export interface IslandAnalysis {
 	eventHandlers: string[];
 	/** human-readable reasons for the decision */
 	reasons: string[];
+
+	readonly ast: AstNode;
 }
 
 const REACTIVE_MODULE = "@404/aether/reactivity";
@@ -57,12 +56,11 @@ export function walk(
 	}
 }
 
-function stripTypes(source: string): string {
-	return tsBlankSpace(source);
-}
+export async function parseSource(source: string): Promise<AstNode> {
+	const { default: tsBlankSpace } = await import("ts-blank-space");
+	const { parseModule } = await import("meriyah");
 
-export function parseSource(source: string): AstNode {
-	const js = stripTypes(source);
+	const js = tsBlankSpace(source);
 	return parseModule(js, { jsx: true, module: true, next: true });
 }
 
@@ -82,8 +80,9 @@ function readDirective(ast: AstNode): IslandAnalysis["directive"] {
 }
 
 /** analyse a component module and decide whether it is an interactive island. */
-export function analyseIslandSource(source: string): IslandAnalysis {
-	const ast = parseSource(source);
+export async function analyseIslandSource(source: string): Promise<IslandAnalysis> {
+	const ast = await parseSource(source);
+
 	const reasons: string[] = [];
 	const directive = readDirective(ast);
 
@@ -172,5 +171,6 @@ export function analyseIslandSource(source: string): IslandAnalysis {
 		primitives: [...primitives],
 		eventHandlers: [...eventHandlers],
 		reasons,
+		ast,
 	};
 }
