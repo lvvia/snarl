@@ -24,8 +24,7 @@
     "jsr:@std/streams@^1.1.2": "1.1.2",
     "npm:esbuild@~0.25.5": "0.25.12",
     "npm:esbuild@~0.28.2": "0.28.2",
-    "npm:meriyah@^7.3.1": "7.3.1",
-    "npm:ts-blank-space@0.9": "0.9.0"
+    "npm:meriyah@^7.3.1": "7.3.1"
   },
   "jsr": {
     "@deno/esbuild-plugin@1.2.1": {
@@ -444,16 +443,6 @@
     },
     "meriyah@7.3.1": {
       "integrity": "sha512-642iQ3T0ZBXw+qrFo9m50CsdzSz9Tn0HtSKN3WxWlTXfcHUZwunxU4gMoMDIQzzOhwtkLOLeBs9GXs7NwDI2nA=="
-    },
-    "ts-blank-space@0.9.0": {
-      "integrity": "sha512-TU6coIZm6RxGgAjroRKmi6aCQ7Pq7cT+1I+bTKBepD6joOuWqUCOptVlz+eurqTnatnQOimlR8XB5sQZ6ULwbw==",
-      "dependencies": [
-        "typescript"
-      ]
-    },
-    "typescript@6.0.3": {
-      "integrity": "sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==",
-      "bin": true
     }
   },
   "workspace": {
@@ -473,8 +462,7 @@
         "dependencies": [
           "jsr:@deno/esbuild-plugin@^1.2.1",
           "npm:esbuild@~0.28.2",
-          "npm:meriyah@^7.3.1",
-          "npm:ts-blank-space@0.9"
+          "npm:meriyah@^7.3.1"
         ]
       },
       "packages/varnish": {

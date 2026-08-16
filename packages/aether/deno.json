@@ -25,7 +25,6 @@
 	"imports": {
 		"@deno/esbuild-plugin": "jsr:@deno/esbuild-plugin@^1.2.1",
 		"esbuild": "npm:esbuild@^0.28.2",
-		"meriyah": "npm:meriyah@^7.3.1",
-		"ts-blank-space": "npm:ts-blank-space@^0.9.0"
+		"meriyah": "npm:meriyah@^7.3.1"
 	}
 }
