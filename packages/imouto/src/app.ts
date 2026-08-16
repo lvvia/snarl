@@ -23,7 +23,7 @@ import { collectHeadContent, injectIntoHead } from "./head.ts";
 import { injectScopedStylesheet, scopedCss } from "@404/varnish";
 import { dim } from "@std/fmt/colors";
 import { log } from "@july/snarl/verbosity";
-import { preflightPermissions } from "../../../src/permissions.ts";
+import { preflightPermissions } from "@july/snarl";
 
 export interface AppOptions {
 	staticDir?: string;
