@@ -8,3 +8,4 @@ export * from "./core.ts";
 export * from "./body.ts";
 export * from "./multipart.ts";
 export * from "./middleware.ts";
+export * from "./image.ts";

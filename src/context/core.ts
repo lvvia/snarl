@@ -16,6 +16,7 @@ import {
 import { isJsxElement, type JSX, renderToString } from "@july/snarl";
 import { type BodyReader, createBodyReader } from "./body.ts";
 import { createMultipartReader, type MultipartOptions, type MultipartResult } from "./multipart.ts";
+import { detectImageType, processImageBlob, processImageStream } from "./image.ts";
 
 const encoder = new TextEncoder();
 const DOCTYPE_RE = /^\s*<!doctype\b/i;
@@ -200,6 +201,26 @@ export class Context<Params = Record<string, string>> {
 	/** sends a 204 No Content response */
 	noContent(): Response {
 		return this.response(null, null, { status: 204 });
+	}
+
+	/** sends an image */
+	async image(
+		data: Uint8Array | ArrayBuffer | Blob | ReadableStream<Uint8Array>,
+		init?: ResponseInit,
+	): Promise<Response> {
+		if (data instanceof ReadableStream) {
+			const result = await processImageStream(data);
+			return this.response(result.stream, result.mime, init);
+		}
+
+		if (data instanceof Blob) {
+			const result = await processImageBlob(data);
+			return this.response(result.bytes, result.mime, init);
+		}
+
+		const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+		const mime = detectImageType(bytes) || "application/octet-stream";
+		return this.response(bytes as Uint8Array<ArrayBuffer>, mime, init);
 	}
 
 	/** returns the body as a `FormData` object */
