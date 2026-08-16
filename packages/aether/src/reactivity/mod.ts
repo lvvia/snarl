@@ -46,3 +46,4 @@ export { type Dispose, effect, effectScope } from "./effect.ts";
 export { flush, getActiveSub, setActiveSub, trigger, untracked } from "./engine.ts";
 export type { Link, ReactiveNode } from "./types.ts";
 export type { ReactiveAccessor } from "./accessor.ts";
+export { onMount } from "./lifecycle.ts";

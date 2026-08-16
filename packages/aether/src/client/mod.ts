@@ -73,4 +73,5 @@ export function hydrate(root: ParentNode = document): void {
 }
 
 export { jsx } from "./jsx.ts";
+export * from "../env.ts";
 export * from "./css.ts";
