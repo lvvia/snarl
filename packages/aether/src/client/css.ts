@@ -5,8 +5,7 @@
  */
 
 import { boring } from "@404/imouto/hash";
-import { jsx } from "./jsx.ts";
-import type { JSX } from "./jsx.ts";
+import { jsx, type JSX } from "./jsx-runtime.ts";
 
 export interface ScopedStyles {
 	readonly id: string;
