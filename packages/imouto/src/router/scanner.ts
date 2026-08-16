@@ -39,18 +39,26 @@ async function collectFiles(root: string): Promise<{ routes: string[]; special: 
 	const routes: string[] = [];
 	const special: string[] = [];
 
-	for await (
-		const entry of walk(root, {
-			includeDirs: false,
-			followSymlinks: false,
-			exts: [".ts", ".tsx"],
-		})
-	) {
-		const name = entry.name;
-		if (isSpecialFile(name)) {
-			special.push(entry.path);
-		} else if (isRouteFile(name)) {
-			routes.push(entry.path);
+	try {
+		for await (
+			const entry of walk(root, {
+				includeDirs: false,
+				followSymlinks: false,
+				exts: [".ts", ".tsx"],
+			})
+		) {
+			const name = entry.name;
+			if (isSpecialFile(name)) {
+				special.push(entry.path);
+			} else if (isRouteFile(name)) {
+				routes.push(entry.path);
+			}
+		}
+	} catch (err) {
+		if (err instanceof Deno.errors.NotFound) {
+			log.warn("aether/discover", `Skipping directory, path does not exist: ${dim(root)}`);
+		} else {
+			throw err;
 		}
 	}
 
