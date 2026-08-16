@@ -63,7 +63,8 @@ type JsxNode =
 interface JsxProps {
 	children?: JSX.Node | JSX.Node[];
 	dangerouslySetInnerHTML?: { __html: string };
-	[key: string]: unknown;
+	key?: string | number;
+	[attr: string]: unknown;
 }
 
 const prototype: Pick<JSX.Element, typeof jsxBrand> = Object.create(null, {
@@ -245,10 +246,14 @@ export function jsxTemplate(
 export function jsx<P extends JSX.Props = JSX.Props>(
 	tag: JSX.Element["tag"],
 	props: P | null = {} as P,
+	key?: string | number,
 ): JSX.Element {
 	const el = Object.create(prototype);
 	el.tag = tag;
-	el.props = props ?? {};
+	if (key !== undefined) {
+		props = { ...(props ?? {} as P), key };
+	}
+	el.props = props as P;
 	return el;
 }
 
@@ -298,7 +303,7 @@ function renderJsx(element: JSX.Element): string | Promise<string> {
 	return html + inner + `</${tag}>`;
 }
 
-type CSSProperties =
+export type CSSProperties =
 	& {
 		[K in keyof CSSStyleDeclaration]?: CSSStyleDeclaration[K] extends string ? string | number
 			: never;
@@ -310,7 +315,7 @@ type CSSProperties =
 		[key: `-ms-${string}`]: string | number;
 	};
 
-type CoerceDOMProperty<T> = T extends string ? string
+export type CoerceDOMProperty<T> = T extends string ? string
 	: T extends number ? string | number
 	: T extends boolean ? string | boolean
 	: T extends SVGAnimatedString ? string

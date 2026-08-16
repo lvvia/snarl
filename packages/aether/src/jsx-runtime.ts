@@ -8,8 +8,8 @@ import * as snarl from "@july/snarl/jsx-runtime";
 
 import { island } from "./server/island.ts";
 import { getIslandMeta } from "./server/registry.ts";
-import { isReactive } from "./reactivity/mod.ts";
-import { For, Show } from "./control-flow.ts";
+import { type Computed, isReactive, type Signal } from "./reactivity/mod.ts";
+import { For, type ForProps, Show, type ShowProps } from "./control-flow.ts";
 
 //deno-lint-ignore ban-types
 const wrappers = new WeakMap<Function, ReturnType<typeof island>>();
@@ -75,7 +75,11 @@ function finaliseClasses(classToggles: string[], out: Record<string, unknown>) {
 function jsx<P extends JSX.Props = JSX.Props>(
 	tag: JSX.Element["tag"],
 	props: P | null = {} as P,
+	key?: string | number,
 ): JSX.Element {
+	props ??= {} as P;
+	if (key !== undefined) props = { ...props, key };
+
 	if (tag === "for") return For(props as any);
 	if (tag === "show") return Show(props as any);
 
@@ -113,6 +117,36 @@ export const jsxAttr = snarl.jsxAttr;
 export const jsxTemplate = snarl.jsxTemplate;
 export const renderToString = snarl.renderToString;
 
+type MaybeReactive<T> = T | Signal<T> | Computed<T>;
+
+export type ReactiveExtensions<T> =
+	& {
+		[K in keyof T]: T[K] | ReactiveOverrides[K & keyof ReactiveOverrides];
+	}
+	& ReactiveOverrides;
+
+export type ReactiveOverrides = {
+	style?: MaybeReactive<string> | snarl.CSSProperties | MaybeReactive<snarl.CSSProperties>;
+	class?: MaybeReactive<string>;
+	href?: MaybeReactive<string>;
+
+	disabled?: MaybeReactive<boolean>;
+	value?: MaybeReactive<string>;
+	checked?: MaybeReactive<boolean>;
+
+	[key: `data-${string}`]: MaybeReactive<string | number | boolean | null | undefined>;
+	[key: `aria-${string}`]: MaybeReactive<string | number | boolean | null | undefined>;
+
+	// deno-lint-ignore ban-types
+	[key: `on${string}`]: EventListener | ((e: any) => void) | string | Function;
+
+	// deno-lint-ignore ban-types
+	[key: `on:${string}`]: EventListener | ((e: any) => void) | string | Function;
+
+	[key: `bind:${string}`]: Signal<any> | any;
+	[key: `class:${string}`]: MaybeReactive<boolean>;
+};
+
 export declare namespace JSX {
 	export type Element = snarl.JSX.Element;
 	export type Node = snarl.JSX.Node;
@@ -122,7 +156,9 @@ export declare namespace JSX {
 	export type FC<P extends Props = Props> = snarl.JSX.FC<P>;
 
 	/** defines valid JSX elements */
-	export type ElementType = snarl.JSX.ElementType;
+	export type ElementType =
+		| keyof IntrinsicElements
+		| FC<any>;
 
 	export interface ElementChildrenAttribute {
 		// deno-lint-ignore ban-types
@@ -131,13 +167,12 @@ export declare namespace JSX {
 
 	export type IntrinsicAttributes = snarl.JSX.IntrinsicAttributes;
 
-	/** type definitions for intrinsic HTML and SVG elements */
 	export type IntrinsicElements =
-		& snarl.JSX.IntrinsicElements
 		& {
-			for: Parameters<typeof For<any>>[0];
-			show: Parameters<typeof Show<any>>[0];
-		};
+			show: ShowProps<any>;
+			for: ForProps<any>;
+		}
+		& Omit<ReactiveExtensions<snarl.JSX.IntrinsicElements>, "show" | "for">;
 }
 
 export { jsx, jsx as jsxDEV, jsx as jsxs };
