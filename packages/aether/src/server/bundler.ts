@@ -5,10 +5,10 @@
  */
 
 import { boring } from "@404/imouto";
-import { fromFileUrl, join } from "@std/path";
+import { fromFileUrl } from "@std/path";
 import { getIslandModuleUrl } from "./registry.ts";
 
-import type { Plugin } from "esbuild";
+import type { BuildOptions, Plugin } from "esbuild";
 
 export interface AetherServeOptions {
 	/** in-memory cache for bundled islands. defaults to a shared `Map` */
@@ -17,9 +17,9 @@ export interface AetherServeOptions {
 	plugins?: Plugin[];
 	/** override the jsx runtime used for the client bundle */
 	jsxImportSource?: string;
-}
 
-const AETHER_SRC_ROOT = fromFileUrl(new URL("../", import.meta.url));
+	esbuild?: Omit<BuildOptions, "stdin" | "bundle" | "write" | "plugins">;
+}
 
 class UnsupportedExportError extends Error {
 	constructor(exportName: string, hint?: string) {
@@ -49,7 +49,7 @@ const KNOWN_EXPORTS: Record<string, string | (() => never) | undefined> = {
 	"@july/snarl": () => {
 		throw new UnsupportedExportError(
 			"@july/snarl",
-			'use "@404/aether/reactivity" or "@404/aether/client" instead',
+			'use "@404/aether" or "@404/aether/client" instead',
 		);
 	},
 	"@july/snarl/jsx-runtime": "client/jsx.ts",
@@ -58,6 +58,33 @@ const KNOWN_EXPORTS: Record<string, string | (() => never) | undefined> = {
 		throw new UnsupportedExportError("@404/imouto");
 	},
 };
+
+interface ResolvedSpecifier {
+	path: string;
+	namespace?: "https" | "http" | "file" | "jsr" | "npm";
+}
+
+export function resolveTargetUrl(relativeTarget: string): URL {
+	const rootUrl = new URL("../", import.meta.url).href;
+	return new URL(relativeTarget, rootUrl);
+}
+
+function normaliseSpecifier(targetUrl: URL): ResolvedSpecifier {
+	const urlStr = targetUrl.href;
+
+	const match = urlStr.match(/^(https|http|jsr|npm):/);
+	if (match) {
+		return {
+			path: urlStr,
+			namespace: match[1] as ResolvedSpecifier["namespace"],
+		};
+	}
+
+	return {
+		path: fromFileUrl(urlStr),
+		namespace: "file",
+	};
+}
 
 /** resolves `@404/aether/*` to real source paths so esbuild can bundle them */
 function aetherResolver(): Plugin {
@@ -69,10 +96,22 @@ function aetherResolver(): Plugin {
 
 				const rel = KNOWN_EXPORTS[args.path];
 				if (!rel) return { path: args.path, external: true };
+				if (typeof rel === "function") {
+					return rel();
+				}
 
-				return {
-					path: join(AETHER_SRC_ROOT, typeof rel === "string" ? rel : rel()),
-				};
+				try {
+					const url = resolveTargetUrl(rel);
+					const spec = normaliseSpecifier(url);
+
+					return {
+						path: spec.path,
+						namespace: spec.namespace,
+						external: false,
+					};
+				} catch {
+					return { path: args.path, external: true };
+				}
 			});
 		},
 	};
@@ -88,6 +127,7 @@ export async function bundleIslands(
 	const source = buildEntrySource(names);
 
 	const result = await esbuild.build({
+		...options.esbuild,
 		stdin: {
 			contents: source,
 			resolveDir: Deno.cwd(),
@@ -96,15 +136,15 @@ export async function bundleIslands(
 		},
 		bundle: true,
 		write: false,
-		format: "esm",
-		platform: "browser",
-		target: "es2022",
-		jsx: "automatic",
+		format: options.esbuild?.format ?? "esm",
+		platform: options.esbuild?.platform ?? "browser",
+		target: options.esbuild?.target ?? "es2022",
+		jsx: options.esbuild?.jsx ?? "automatic",
 		jsxImportSource: options.jsxImportSource ?? "@404/aether/client",
 		plugins: [aetherResolver(), denoPlugin(), ...(options.plugins ?? [])],
-		minify: Deno.env.get("ENV") === "production",
-		treeShaking: true,
-		logLevel: "warning",
+		minify: options.esbuild?.minify ?? Deno.env.get("ENV") === "production",
+		treeShaking: options.esbuild?.treeShaking ?? true,
+		logLevel: options.esbuild?.logLevel ?? "warning",
 	});
 
 	if (result.errors.length) {
@@ -118,11 +158,11 @@ function buildEntrySource(names: readonly string[]): string {
 
 	names.forEach((name, i) => {
 		const specifier = getIslandModuleUrl(name);
-		if (!specifier) {
-			throw new Error(`aether: no island registered under name "${name}"`);
-		}
+		if (!specifier) throw new Error(`aether: no island registered under name "${name}"`);
 
-		const path = fromFileUrl(specifier);
+		const url = new URL(specifier);
+		const path = url.protocol === "file:" ? fromFileUrl(url) : url.href;
+
 		lines.push(`import island${i} from ${JSON.stringify(path)};`);
 		lines.push(`registerIsland(${JSON.stringify(name)}, island${i});`);
 	});
