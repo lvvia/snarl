@@ -90,7 +90,10 @@ function readDirective(ast: AstNode): IslandAnalysis["directive"] {
 }
 
 /** analyse a component module and decide whether it is an interactive island. */
-export async function analyseIslandSource(source: string,	loader: "jsx" | "tsx" | "ts" | "js"): Promise<IslandAnalysis> {
+export async function analyseIslandSource(
+	source: string,
+	loader: "jsx" | "tsx" | "ts" | "js",
+): Promise<IslandAnalysis> {
 	const ast = await parseSource(source, loader);
 
 	const reasons: string[] = [];

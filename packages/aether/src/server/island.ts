@@ -45,7 +45,7 @@ export function island<P extends Record<string, unknown>>(
 		return jsx(tag, {
 			"data-x-id": meta.id,
 			"data-x-props": JSON.stringify(props ?? {}),
-			children
+			children,
 		});
 	}
 
