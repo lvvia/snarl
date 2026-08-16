@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { toFileUrl } from "@std/path";
+import { basename, toFileUrl } from "@std/path";
 import type {
 	ErrorModule,
 	LayoutModule,
@@ -33,7 +33,7 @@ const SPECIAL_FILE_HANDLERS: Record<string, SpecialAssigner> = {
 };
 
 export async function applySpecialFile(meta: RootRouteMetadata, fsPath: string): Promise<void> {
-	const name = fsPath.split("/").pop() ?? "";
+	const name = basename(fsPath) ?? "";
 	const match = name.match(/^_([a-z0-9]+)\.tsx?$/);
 	const assign = match && SPECIAL_FILE_HANDLERS[match[1]];
 

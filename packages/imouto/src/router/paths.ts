@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { dirname } from "@std/path";
+import { dirname, parse} from "@std/path";
 import type { RootRouteMetadata } from "./types.ts";
 
 /** converts a filesystem path to a route path */
@@ -41,9 +41,13 @@ export function collectDirAncestors(
 	metas: Map<string, RootRouteMetadata>,
 ): RootRouteMetadata[] {
 	const ancestors: RootRouteMetadata[] = [];
+
 	let dir = dirname(path);
 
-	while (dir === base || dir.startsWith(base + "/")) {
+	const posixDir = dir.replace(/\\/g, "/");
+	const posixBase = base.replace(/\\/g, "/");
+
+	while (posixDir === posixBase || posixDir.startsWith(posixBase + "/")) {
 		const meta = metas.get(dir);
 		if (meta) ancestors.unshift(meta);
 		const parent = dirname(dir);

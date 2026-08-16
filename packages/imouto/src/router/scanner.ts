@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { toFileUrl } from "@std/path";
+import { SEPARATOR, toFileUrl } from "@std/path";
 import { dim } from "@std/fmt/colors";
 import { applySpecialFile } from "./special-files.ts";
 import { makeRoutePath } from "./paths.ts";
@@ -23,7 +23,7 @@ async function importRoute(base: string, file: string): Promise<ScanEntry> {
 		path: makeRoutePath(rel),
 		fsPath: file,
 		module,
-		depth: rel.split("/").length - 1,
+		depth: rel.split(SEPARATOR).filter(Boolean).length - 1,
 	};
 }
 
