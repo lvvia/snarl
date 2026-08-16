@@ -7,6 +7,8 @@
 import { type JSX, jsx } from "@july/snarl/jsx-runtime";
 import { type IslandMeta, markIslandUsed } from "./registry.ts";
 import { isJsxElement } from "@july/snarl";
+import { effectScope } from "../reactivity/mod.ts";
+import { isBrowser } from "../env.ts";
 
 export interface IslandWrapperOptions {
 	/** wrapper element tag around the hydration marker. defaults to "div" */
@@ -31,10 +33,19 @@ export function island<P extends Record<string, unknown>>(
 		assertSerialisableProps(meta.id, props);
 		markIslandUsed(meta.id);
 
+		let children: JSX.Node;
+		if (isBrowser) {
+			children = Component(props);
+		} else {
+			effectScope(() => {
+				children = Component(props);
+			})();
+		}
+
 		return jsx(tag, {
 			"data-x-id": meta.id,
 			"data-x-props": JSON.stringify(props ?? {}),
-			children: Component(props),
+			children
 		});
 	}
 

@@ -10,7 +10,7 @@ import { registerIslandComponent } from "./registry.ts";
 import { walk as fsWalk } from "@std/fs";
 import { bold, cyan, dim } from "@std/fmt/colors";
 import { log } from "@july/snarl/verbosity";
-import { extname } from "jsr:@std/path";
+import { extname } from "@std/path";
 
 const LOADER_MAP: Record<string, "ts" | "tsx" | "js" | "jsx"> = {
 	".ts": "ts",
