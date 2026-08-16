@@ -24,23 +24,78 @@ function maybeRenderIsland(tag: unknown, props: any): any {
 }
 
 function unwrapReactive(value: unknown): unknown {
-	if (isReactive(value)) return (value as () => unknown)();
+	if (isReactive(value)) return unwrapReactive((value as () => unknown)());
+
 	if (Array.isArray(value)) return value.map(unwrapReactive);
+	if (
+		value != null && typeof value === "object" &&
+		!snarl.isJsxElement(value) && (value as object).constructor === Object
+	) {
+		const out: Record<string, unknown> = {};
+		for (const k of Object.keys(value as Record<string, unknown>)) {
+			out[k] = unwrapReactive((value as Record<string, unknown>)[k]);
+		}
+		return out;
+	}
 	return value;
 }
 
-function jsx(tag: any, props: any): any {
-	const island = maybeRenderIsland(tag, props);
-	if (island) return island;
-
-	if (props != null) {
-		const unwrapped: Record<string, unknown> = {};
-		for (const key of Object.keys(props)) {
-			unwrapped[key] = unwrapReactive(props[key]);
-		}
-		return snarl.jsx(tag, unwrapped);
+function handleBinding(
+	target: string,
+	value: unknown,
+	out: Record<string, unknown>,
+	groupState: { value: unknown; hasBind: boolean },
+) {
+	if (target === "group") {
+		groupState.value = value;
+		groupState.hasBind = true;
+	} else if (target === "checked") {
+		out.checked = Boolean(value);
+	} else {
+		out.value = value ?? "";
 	}
-	return snarl.jsx(tag, props);
+}
+
+function finaliseGroupBinding(
+	groupState: { value: unknown; hasBind: boolean },
+	out: Record<string, unknown>,
+) {
+	if (groupState.hasBind) {
+		out.checked = String(groupState.value) === String(out.value ?? "");
+	}
+}
+
+function finaliseClasses(classToggles: string[], out: Record<string, unknown>) {
+	if (classToggles.length) {
+		out.class = [out.class, ...classToggles].filter(Boolean).join(" ");
+	}
+}
+
+function jsx(tag: any, props: any): any {
+	const rendered = maybeRenderIsland(tag, props);
+	if (rendered) return rendered;
+	if (props == null) return snarl.jsx(tag, props);
+
+	const out: Record<string, unknown> = {};
+	const classToggles: string[] = [];
+	const groupState = { value: undefined as unknown, hasBind: false };
+
+	for (const key of Object.keys(props)) {
+		const value = unwrapReactive(props[key]);
+
+		if (key.startsWith("bind:")) {
+			handleBinding(key.slice(5), value, out, groupState);
+		} else if (key.startsWith("class:")) {
+			if (value) classToggles.push(key.slice(6));
+		} else {
+			out[key] = value;
+		}
+	}
+
+	finaliseGroupBinding(groupState, out);
+	finaliseClasses(classToggles, out);
+
+	return snarl.jsx(tag, out);
 }
 
 export const Fragment = snarl.Fragment;

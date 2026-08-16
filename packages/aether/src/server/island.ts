@@ -7,7 +7,7 @@
 import { type JSX, jsx } from "@july/snarl/jsx-runtime";
 import { type IslandMeta, markIslandUsed } from "./registry.ts";
 import { isJsxElement } from "@july/snarl";
-import { effectScope } from "../reactivity/mod.ts";
+import { effectScope, isReactive } from "../reactivity/mod.ts";
 import { isBrowser } from "../env.ts";
 
 export interface IslandWrapperOptions {
@@ -72,6 +72,12 @@ function assertSerialisableProps(id: string, props: Record<string, unknown>): vo
 		}
 
 		if (typeof value === "function") {
+			if (isReactive(value)) {
+				throw new Error(
+					`aether: island "${id}" prop "${path}" is a signal/computed. Reactive state can't cross ` +
+						`the island boundary. consider using \`sharedSignal(key, initial)\``,
+				);
+			}
 			throw new Error(
 				`aether: island "${id}" prop "${path}" is a function and can't cross to the client`,
 			);
