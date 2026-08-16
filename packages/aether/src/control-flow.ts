@@ -30,7 +30,7 @@ export function For<T>(props: ForProps<T>): JSX.Element {
 		return [props.children(item, () => index)];
 	});
 
-	return jsx(Fragment, { children: rendered });
+	return jsx(Fragment as JSX.Fragment, { children: rendered });
 }
 
 export interface ShowProps<T = unknown> {
@@ -46,5 +46,6 @@ export function Show<T>(props: ShowProps<T>): JSX.Element {
 			? (props.children as (v: NonNullable<T>) => JSX.Node)(condition as NonNullable<T>)
 			: props.children)
 		: (props.fallback ?? null);
-	return jsx(Fragment, { children: branch });
+
+	return jsx(Fragment as JSX.Fragment, { children: branch });
 }

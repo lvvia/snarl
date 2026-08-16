@@ -105,7 +105,7 @@ function jsx<P extends JSX.Props = JSX.Props>(
 	return snarl.jsx(tag, out);
 }
 
-export const Fragment = snarl.Fragment;
+export const Fragment = snarl.Fragment as snarl.JSX.Fragment;
 export const voidTags = snarl.voidTags;
 export const isJsxElement = snarl.isJsxElement;
 export const jsxEscape = snarl.jsxEscape;
@@ -117,7 +117,7 @@ export declare namespace JSX {
 	export type Element = snarl.JSX.Element;
 	export type Node = snarl.JSX.Node;
 	export type Props = snarl.JSX.Props;
-	export type Fragment = typeof Fragment;
+	export type Fragment = snarl.JSX.Fragment;
 
 	export type FC<P extends Props = Props> = snarl.JSX.FC<P>;
 
