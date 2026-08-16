@@ -13,7 +13,7 @@ import {
 	TooManyRequestsError,
 	UnauthorizedError,
 } from "../errors.ts";
-import { isJsxElement, type JSX, renderToString } from "@july/snarl";
+import { isJsxElement, type JSX, renderToString } from "../jsx-runtime.ts";
 import { type BodyReader, createBodyReader } from "./body.ts";
 import { createMultipartReader, type MultipartOptions, type MultipartResult } from "./multipart.ts";
 import { detectImageType, processImageBlob, processImageStream } from "./image.ts";

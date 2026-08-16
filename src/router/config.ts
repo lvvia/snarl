@@ -6,7 +6,7 @@
 
 import type { ErrorHandler, Handler } from "../context/middleware.ts";
 import type { ReplaceReturnType } from "../types.ts";
-import { log } from "@july/snarl/verbosity";
+import { log } from "../verbosity.ts";
 
 export interface RouterConfig {
 	prefix: string;

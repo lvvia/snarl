@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { log } from "@july/snarl/verbosity";
+import { log } from "./verbosity.ts";
 
 export const voidTags: ReadonlySet<string> = new Set([
 	"area",

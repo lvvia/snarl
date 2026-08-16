@@ -10,7 +10,7 @@ import { extname, join, relative, resolve } from "@std/path";
 import type { Middleware } from "../context/mod.ts";
 import { HttpError } from "../errors.ts";
 import { ByteSliceStream } from "@std/streams";
-import { log } from "@july/snarl/verbosity";
+import { log } from "../verbosity.ts";
 
 export type CustomContentTypes = Record<string, string>;
 

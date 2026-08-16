@@ -18,7 +18,7 @@ import { extractPattern, type Route, type RouteMetadata, type RoutePayload } fro
 import { createPrefixedRouter } from "./group.ts";
 import { resolveRouterConfig, type RouterConfig } from "./config.ts";
 import { type MiddlewareLike, MiddlewareManager } from "../middleware/mod.ts";
-import { log } from "@july/snarl/verbosity";
+import { log } from "../verbosity.ts";
 import { preflightPermissions } from "../permissions.ts";
 
 type Params<P> = P extends PreciseURLPattern<any> ? ParametersOf<P["raw"]>
