@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { dirname, parse} from "@std/path";
+import { dirname } from "@std/path";
 import type { RootRouteMetadata } from "./types.ts";
 
 /** converts a filesystem path to a route path */

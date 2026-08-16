@@ -1,3 +1,9 @@
+/**
+ * snarl, a minimal web framework for deno
+ * Copyright (c) 2025-2026 kyu.re
+ * SPDX-License-Identifier: MPL-2.0
+ */
+
 import { effect, type Signal, signal } from "../reactivity/mod.ts";
 import { normaliseChildren } from "./jsx.ts";
 import type { JSX } from "./jsx.ts";
