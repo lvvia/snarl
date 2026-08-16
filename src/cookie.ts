@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+import { decodeHex, encodeHex } from "@std/encoding";
+
 /**
  * configuration options for setting a cookie
  */
@@ -144,6 +146,59 @@ export function deleteCookie(
 	});
 }
 
+function hmacKey(secret: string): Promise<CryptoKey> {
+	return crypto.subtle.importKey(
+		"raw",
+		new TextEncoder().encode(secret),
+		{ name: "HMAC", hash: "SHA-256" },
+		false,
+		["sign", "verify"],
+	);
+}
+
+/**
+ * signs a value with HMAC-SHA256 and appends the signature, so a later
+ * `unsignValue()` call can detect tampering. this does not encrypt the
+ * value. it remains visible to the client. it only proves the server
+ * produced it
+ *
+ * @example
+ * ```ts
+ * const signed = await signValue("user-id:42", secret);
+ * jar.set("session", signed);
+ * ```
+ */
+export async function signValue(value: string, secret: string): Promise<string> {
+	const key = await hmacKey(secret);
+	const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(value));
+	return `${value}.${encodeHex(sig)}`;
+}
+
+/**
+ * verifies a value produced by `signValue()`
+ *
+ * @returns the original value if the signature is valid, or `undefined`
+ * if the input is missing, malformed, or the signature doesn't match
+ */
+export async function unsignValue(signed: string, secret: string): Promise<string | undefined> {
+	const idx = signed.lastIndexOf(".");
+	if (idx === -1) return undefined;
+
+	const value = signed.slice(0, idx);
+	const sigHex = signed.slice(idx + 1);
+
+	let sig: Uint8Array<ArrayBuffer>;
+	try {
+		sig = decodeHex(sigHex);
+	} catch {
+		return undefined;
+	}
+
+	const key = await hmacKey(secret);
+	const valid = await crypto.subtle.verify("HMAC", key, sig, new TextEncoder().encode(value));
+	return valid ? value : undefined;
+}
+
 /**
  * a helper class to manage request cookies (input) and response cookies (output)
  */
@@ -168,6 +223,39 @@ export class CookieJar {
 	 */
 	get(name: string): string | undefined {
 		return this.ensureParsed()[name];
+	}
+
+	/**
+	 * gets and verifies a cookie set via `setSigned()`
+	 *
+	 * @param name the name of the cookie
+	 * @param secret the same secret passed to `setSigned()`
+	 *
+	 * @returns the original value, or `undefined` if the cookie is
+	 * absent, malformed, or was tampered with / signed under a different secret
+	 */
+	async getSigned(name: string, secret: string): Promise<string | undefined> {
+		const raw = this.get(name);
+		if (raw === undefined) return undefined;
+		return await unsignValue(raw, secret);
+	}
+
+	/**
+	 * sets a cookie whose value is HMAC-signed with `secret`, so a later
+	 * `getSigned()` call can detect tampering.
+	 *
+	 * @example
+	 * ```ts
+	 * await ctx.cookies.setSigned("session", `user:${userId}`, Deno.env.get("COOKIE_SECRET")!);
+	 * ```
+	 */
+	async setSigned(
+		name: string,
+		value: string,
+		secret: string,
+		options?: CookieOptions,
+	): Promise<void> {
+		this.set(name, await signValue(value, secret), options);
 	}
 
 	/**
