@@ -11,4 +11,4 @@ const app = await createApp({ routesDir: "./routes" });
 
 app.use(aether({ entrypoints: ["./routes"] }));
 
-app.serve({ port: 8000 });
+app.serve({ port: 8001 });
