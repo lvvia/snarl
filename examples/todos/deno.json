@@ -1,0 +1,19 @@
+{
+	"tasks": {
+		"start": "deno run -P=default main.ts"
+	},
+	"permissions": {
+		"default": {
+			"net": true,
+			"read": true,
+			"run": true,
+			"env": true,
+			"write": true
+		}
+	},
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"jsxImportSource": "@404/aether",
+		"lib": ["deno.ns", "dom", "dom.iterable"]
+	}
+}
