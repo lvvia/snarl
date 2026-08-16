@@ -5,7 +5,7 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { Context, sse, stream, upgradeWebSocket } from "@july/snarl";
+import { consume, Context, sse, stream, upgradeWebSocket } from "@july/snarl";
 
 const mockInfo = { remoteAddr: { hostname: "127.0.0.1" } } as Deno.ServeHandlerInfo<Deno.NetAddr>;
 
@@ -71,4 +71,64 @@ Deno.test("stream: upgradeWebSocket rejects non-websocket requests", () => {
 	const ctx = makeCtx();
 	const res = upgradeWebSocket(ctx, {});
 	assertEquals(res.status, 426);
+});
+
+Deno.test("stream: sse() stops iterating once the request signal aborts", async () => {
+	const controller = new AbortController();
+	const ctx = new Context(
+		new Request("http://localhost/", { signal: controller.signal }),
+		"/",
+		"",
+		mockInfo,
+		{},
+		"id",
+	);
+
+	let yielded = 0;
+	async function* source() {
+		try {
+			while (true) {
+				yielded++;
+				yield { data: String(yielded) };
+				await new Promise((r) => setTimeout(r, 5));
+			}
+		} finally {
+			/* no-op */
+		}
+	}
+
+	const res = sse(ctx, source);
+	const reader = res.body!.getReader();
+	await reader.read();
+	controller.abort();
+	await reader.read().catch(() => {});
+	assertEquals(yielded > 0, true);
+});
+
+Deno.test("stream: consume() parses a raw SSE byte stream back into data strings", async () => {
+	const encoder = new TextEncoder();
+	const raw = "event: update\ndata: hello\n\ndata: world\n\n";
+	const body = new ReadableStream({
+		start(controller) {
+			controller.enqueue(encoder.encode(raw));
+			controller.close();
+		},
+	});
+
+	const out: string[] = [];
+	for await (const chunk of consume(body)) out.push(chunk);
+	assertEquals(out, ["hello", "world"]);
+});
+
+Deno.test("stream: consume() strips exactly one leading space after 'data:'", async () => {
+	const encoder = new TextEncoder();
+	const body = new ReadableStream({
+		start(controller) {
+			controller.enqueue(encoder.encode("data:  extra-space\n\n"));
+			controller.close();
+		},
+	});
+	const out: string[] = [];
+	for await (const chunk of consume(body)) out.push(chunk);
+	assertEquals(out, [" extra-space"]);
 });
