@@ -72,6 +72,7 @@ export function hydrate(root: ParentNode = document): void {
 	document.documentElement.setAttribute("data-x", "");
 }
 
+export * from "./control-flow.ts";
 export { jsx } from "./jsx.ts";
 export * from "../env.ts";
 export * from "./css.ts";

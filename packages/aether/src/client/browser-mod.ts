@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+export * from "./control-flow.ts";
 export * from "../env.ts";
 export * from "../reactivity/mod.ts";
 export * from "./css.ts";
