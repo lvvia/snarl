@@ -63,11 +63,22 @@ function parseRangeHeader(
 	fileSize: number,
 	maxRangeLength: number,
 ): { start: number; end: number } | null {
-	const match = rangeHeader.match(/^bytes=(\d+)-(\d*)$/);
+	const match = rangeHeader.match(/^bytes=(\d*)-(\d*)$/);
 	if (!match) return null;
 
-	const start = parseInt(match[1], 10);
-	const end = match[2] ? parseInt(match[2], 10) : fileSize - 1;
+	const [, startStr, endStr] = match;
+	if (startStr === "" && endStr === "") return null;
+
+	let start: number, end: number;
+	if (startStr === "") {
+		const suffixLength = parseInt(endStr, 10);
+		if (isNaN(suffixLength) || suffixLength <= 0) return null;
+		start = Math.max(0, fileSize - suffixLength);
+		end = fileSize - 1;
+	} else {
+		start = parseInt(startStr, 10);
+		end = endStr ? parseInt(endStr, 10) : fileSize - 1;
+	}
 
 	if (
 		isNaN(start) || isNaN(end) || start < 0 || end < 0 || start > end || start >= fileSize ||
