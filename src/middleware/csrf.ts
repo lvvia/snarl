@@ -13,6 +13,20 @@ export interface CsrfOptions {
 	formFieldName?: string;
 }
 
+async function eq(a: string, b: string): Promise<boolean> {
+	const enc = new TextEncoder();
+	const [da, db] = await Promise.all([
+		crypto.subtle.digest("SHA-256", enc.encode(a)),
+		crypto.subtle.digest("SHA-256", enc.encode(b)),
+	]);
+	const ba = new Uint8Array(da);
+	const bb = new Uint8Array(db);
+
+	let diff = 0;
+	for (let i = 0; i < ba.length; i++) diff |= ba[i] ^ bb[i];
+	return diff === 0;
+}
+
 export function csrf(options: CsrfOptions = {}): Middleware {
 	const {
 		cookieName = "csrf-token",
@@ -20,7 +34,7 @@ export function csrf(options: CsrfOptions = {}): Middleware {
 		formFieldName = "_csrf",
 	} = options;
 
-	return (ctx, next) => {
+	return async (ctx, next) => {
 		let token = ctx.cookies.get(cookieName);
 		if (!token) {
 			token = crypto.randomUUID();
@@ -39,7 +53,8 @@ export function csrf(options: CsrfOptions = {}): Middleware {
 			}
 
 			const provided = headerToken || formToken;
-			if (!provided || provided !== token) {
+
+			if (!provided || !(await eq(provided, token))) {
 				throw new HttpError(403, "Invalid CSRF token");
 			}
 		}
