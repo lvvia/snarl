@@ -7,8 +7,8 @@
 		".": "./src/mod.ts",
 		"./jsx-runtime": "./src/jsx-runtime.ts",
 		"./client": "./src/client/mod.ts",
-		"./client/jsx-runtime": "./src/client/jsx.ts",
-		"./client/jsx-dev-runtime": "./src/client/jsx.ts",
+		"./client/jsx-runtime": "./src/client/jsx-runtime.ts",
+		"./client/jsx-dev-runtime": "./src/client/jsx-runtime.ts",
 		"./reactivity": "./src/reactivity/mod.ts",
 		"./server": "./src/server/mod.ts"
 	},

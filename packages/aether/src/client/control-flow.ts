@@ -5,8 +5,8 @@
  */
 
 import { effect, type Signal, signal } from "../reactivity/mod.ts";
-import { normaliseChildren } from "./jsx.ts";
-import type { JSX } from "./jsx.ts";
+import { normaliseChildren } from "./jsx-runtime.ts";
+import type { JSX } from "./jsx-runtime.ts";
 
 export interface ForProps<T> {
 	/** the list to render */
