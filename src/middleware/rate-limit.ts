@@ -35,6 +35,7 @@ class MemoryStore implements RateLimitStore {
 			? { count: existing.count + 1, reset: existing.reset }
 			: { count: 1, reset: now + windowMs };
 
+		this.requests.delete(key);
 		this.requests.set(key, entry);
 
 		if (this.requests.size > this.maxSize) {
