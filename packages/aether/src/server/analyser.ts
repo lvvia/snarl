@@ -56,12 +56,22 @@ export function walk(
 	}
 }
 
-export async function parseSource(source: string): Promise<AstNode> {
-	const { default: tsBlankSpace } = await import("ts-blank-space");
+export async function parseSource(
+	source: string,
+	loader: "jsx" | "tsx" | "ts" | "js",
+): Promise<AstNode> {
+	const { transform } = await import("esbuild");
 	const { parseModule } = await import("meriyah");
 
-	const js = tsBlankSpace(source);
-	return parseModule(js, { jsx: true, module: true, next: true });
+	const { code: src } = await transform(source, {
+		loader: loader,
+		jsx: "preserve",
+		minifyIdentifiers: false,
+		minifySyntax: false,
+		minifyWhitespace: false,
+		legalComments: "none",
+	});
+	return parseModule(src, { jsx: true, module: true, next: true });
 }
 
 /** read a leading directive hint ("use island" / "use client" / "use server") */
@@ -80,8 +90,8 @@ function readDirective(ast: AstNode): IslandAnalysis["directive"] {
 }
 
 /** analyse a component module and decide whether it is an interactive island. */
-export async function analyseIslandSource(source: string): Promise<IslandAnalysis> {
-	const ast = await parseSource(source);
+export async function analyseIslandSource(source: string,	loader: "jsx" | "tsx" | "ts" | "js"): Promise<IslandAnalysis> {
+	const ast = await parseSource(source, loader);
 
 	const reasons: string[] = [];
 	const directive = readDirective(ast);

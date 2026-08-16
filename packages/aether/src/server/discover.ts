@@ -10,6 +10,16 @@ import { registerIslandComponent } from "./registry.ts";
 import { walk as fsWalk } from "@std/fs";
 import { bold, cyan, dim } from "@std/fmt/colors";
 import { log } from "@july/snarl/verbosity";
+import { extname } from "jsr:@std/path";
+
+const LOADER_MAP: Record<string, "ts" | "tsx" | "js" | "jsx"> = {
+	".ts": "ts",
+	".tsx": "tsx",
+	".js": "js",
+	".jsx": "jsx",
+	".mjs": "js",
+	".cjs": "js",
+};
 
 export function extractImportSpecifiers(ast: AstNode): string[] {
 	const specs: string[] = [];
@@ -126,15 +136,16 @@ export async function discoverAndRegisterIslands(entrypoints: string[]): Promise
 		if (seen.has(path)) continue;
 		seen.add(path);
 
-		let source: string;
+		let source: string, loader: typeof LOADER_MAP[keyof typeof LOADER_MAP];
 		try {
 			source = await Deno.readTextFile(path);
+			loader = LOADER_MAP[extname(path).toLowerCase()] ?? "ts";
 		} catch (err) {
 			log.error("aether/discover", `failed to read: ${dim(path)} ${dim(String(err))}`);
 			continue;
 		}
 
-		const analysis = await analyseIslandSource(source);
+		const analysis = await analyseIslandSource(source, loader);
 
 		if (analysis.isIsland && analysis.confidence !== "none" && hasComponentExport(analysis.ast)) {
 			const moduleUrl = toFileUrl(path).href;
