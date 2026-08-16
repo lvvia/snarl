@@ -90,6 +90,21 @@ export function serializeCookie(
 	value: string,
 	options: CookieOptions = {},
 ): string {
+	return serialiseCookie(name, value, options);
+}
+
+/**
+ * serialises a cookie into a `Set-Cookie` header string
+ * @param name the name of the cookie
+ * @param value the value of the cookie
+ * @param options additional options for the cookie
+ * @returns a formatted `Set-Cookie` header string
+ */
+export function serialiseCookie(
+	name: string,
+	value: string,
+	options: CookieOptions = {},
+): string {
 	if (options.prefix === "host") {
 		name = `__Host-${name}`;
 		options.path = "/";
