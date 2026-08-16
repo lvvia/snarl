@@ -21,7 +21,11 @@ export interface IslandAnalysis {
 	readonly ast: AstNode;
 }
 
-const REACTIVE_MODULE = "@404/aether/reactivity";
+const REACTIVE_MODULES = new Set([
+	"@404/aether/reactivity",
+	"@404/aether",
+	"@404/aether/client",
+]);
 const REACTIVE_PRIMITIVES = new Set(["signal", "computed", "effect", "batch", "untracked"]);
 const EVENT_HANDLER_RE = /^on[A-Z]/;
 
@@ -108,7 +112,7 @@ export async function analyseIslandSource(
 		const spec = node.source?.value;
 		if (typeof spec !== "string") return;
 
-		const isReactivity = spec === REACTIVE_MODULE || spec.endsWith("/reactivity");
+		const isReactivity = REACTIVE_MODULES.has(spec) || spec.endsWith("/reactivity");
 		if (!isReactivity) return;
 
 		for (const s of node.specifiers ?? []) {
