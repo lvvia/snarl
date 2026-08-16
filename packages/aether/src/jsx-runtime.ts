@@ -9,6 +9,7 @@ import * as snarl from "@july/snarl/jsx-runtime";
 import { island } from "./server/island.ts";
 import { getIslandMeta } from "./server/registry.ts";
 import { isReactive } from "./reactivity/mod.ts";
+import { For, Show } from "./control-flow.ts";
 
 //deno-lint-ignore ban-types
 const wrappers = new WeakMap<Function, ReturnType<typeof island>>();
@@ -71,7 +72,13 @@ function finaliseClasses(classToggles: string[], out: Record<string, unknown>) {
 	}
 }
 
-function jsx(tag: any, props: any): any {
+function jsx<P extends JSX.Props = JSX.Props>(
+	tag: JSX.Element["tag"],
+	props: P | null = {} as P,
+): JSX.Element {
+	if (tag === "for") return For(props as any);
+	if (tag === "show") return Show(props as any);
+
 	const rendered = maybeRenderIsland(tag, props);
 	if (rendered) return rendered;
 	if (props == null) return snarl.jsx(tag, props);
@@ -106,6 +113,31 @@ export const jsxAttr = snarl.jsxAttr;
 export const jsxTemplate = snarl.jsxTemplate;
 export const renderToString = snarl.renderToString;
 
-export type { JSX } from "@july/snarl/jsx-runtime";
+export declare namespace JSX {
+	export type Element = snarl.JSX.Element;
+	export type Node = snarl.JSX.Node;
+	export type Props = snarl.JSX.Props;
+	export type Fragment = typeof Fragment;
+
+	export type FC<P extends Props = Props> = snarl.JSX.FC<P>;
+
+	/** defines valid JSX elements */
+	export type ElementType = snarl.JSX.ElementType;
+
+	export interface ElementChildrenAttribute {
+		// deno-lint-ignore ban-types
+		children: {};
+	}
+
+	export type IntrinsicAttributes = snarl.JSX.IntrinsicAttributes;
+
+	/** type definitions for intrinsic HTML and SVG elements */
+	export type IntrinsicElements =
+		& snarl.JSX.IntrinsicElements
+		& {
+			for: Parameters<typeof For<any>>[0];
+			show: Parameters<typeof Show<any>>[0];
+		};
+}
 
 export { jsx, jsx as jsxDEV, jsx as jsxs };

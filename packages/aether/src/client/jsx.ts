@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
+import { For, Show } from "./control-flow.ts";
 import { type Computed, effect, isReactive, isSignal, type Signal } from "../reactivity/mod.ts";
 
 export const voidTags: ReadonlySet<string> = new Set([
@@ -295,6 +296,8 @@ export function jsx<P extends JSX.Props = JSX.Props>(
 	props: P | null = {} as P,
 ): JSX.Element {
 	props ??= {} as P;
+	if (tag === "for") return For(props as any);
+	if (tag === "show") return Show(props as any);
 
 	if (tag === Fragment) {
 		const frag = document.createDocumentFragment();
@@ -350,14 +353,19 @@ export declare namespace JSX {
 
 	type IntrinsicAttributes = { key?: string | number };
 	type IntrinsicElements = {
-		[K in keyof HTMLElementTagNameMap]: {
-			[key: string]: unknown;
-			style?: string | Record<string, string | number>;
-			class?: string;
-			children?: any;
-			dangerouslySetInnerHTML?: { __html: string };
-			[key: `bind:${string}`]: Signal<any>;
-			[key: `class:${string}`]: boolean | Signal<boolean>;
-		};
+		[K in keyof HTMLElementTagNameMap]:
+			& {
+				[key: string]: unknown;
+				style?: string | Record<string, string | number>;
+				class?: string;
+				children?: any;
+				dangerouslySetInnerHTML?: { __html: string };
+				[key: `bind:${string}`]: Signal<any>;
+				[key: `class:${string}`]: boolean | Signal<boolean>;
+			}
+			& {
+				for: Parameters<typeof For<any>>[0];
+				show: Parameters<typeof Show<any>>[0];
+			};
 	};
 }
