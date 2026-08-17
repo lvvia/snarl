@@ -80,8 +80,12 @@ export function For<T>(props: ForProps<T>): JSX.Element {
 				entry = { item, index, nodes: nodes as Node[] };
 				entries.set(key, entry);
 			} else {
-				entry.item = item;
 				entry.index(i);
+				if (!Object.is(entry.item, item)) {
+					for (const node of entry.nodes) node.parentNode?.removeChild(node);
+					entry.nodes = normaliseChildren(props.children(item, () => entry!.index())) as Node[];
+					entry.item = item;
+				}
 			}
 
 			for (let j = entry.nodes.length - 1; j >= 0; j--) {

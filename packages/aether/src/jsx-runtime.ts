@@ -172,7 +172,7 @@ export declare namespace JSX {
 			show: ShowProps<any>;
 			for: ForProps<any>;
 		}
-		& Omit<ReactiveExtensions<snarl.JSX.IntrinsicElements>, "show" | "for">;
+		& ReactiveExtensions<snarl.JSX.IntrinsicElements>;
 }
 
 export { jsx, jsx as jsxDEV, jsx as jsxs };

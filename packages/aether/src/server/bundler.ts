@@ -33,12 +33,11 @@ class UnsupportedExportError extends Error {
 
 const KNOWN_EXPORTS: Record<string, string | (() => never) | undefined> = {
 	"@404/aether": "client/browser-mod.ts",
-	"@404/aether/jsx-runtime": "client/jsx.ts",
-	"@404/aether/jsx-dev-runtime": "client/jsx.ts",
+	"@404/aether/jsx-runtime": "client/jsx-runtime.ts",
+	"@404/aether/jsx-dev-runtime": "client/jsx-runtime.ts",
 	"@404/aether/client": "client/mod.ts",
-	"@404/aether/client/runtime": "client/runtime.ts",
-	"@404/aether/client/jsx-runtime": "client/jsx.ts",
-	"@404/aether/client/jsx-dev-runtime": "client/jsx.ts",
+	"@404/aether/client/jsx-runtime": "client/jsx-runtime.ts",
+	"@404/aether/client/jsx-dev-runtime": "client/jsx-runtime.ts",
 	"@404/aether/reactivity": "reactivity/mod.ts",
 	"@404/aether/server": () => {
 		throw new UnsupportedExportError(

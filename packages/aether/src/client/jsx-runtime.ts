@@ -181,6 +181,11 @@ function applyStyle(el: HTMLElement | SVGElement, value: unknown): void {
 	}
 }
 
+function isEventKey(key: string): boolean {
+	if (key.startsWith("on:")) return true;
+	return key.length > 2 && key.startsWith("on") && key[2] === key[2].toUpperCase();
+}
+
 function applyAttribute(el: HTMLElement | SVGElement, key: string, value: unknown): void {
 	if (key === "class") {
 		return void ((el as HTMLElement).className = value == null ? "" : String(value));
@@ -192,20 +197,11 @@ function applyAttribute(el: HTMLElement | SVGElement, key: string, value: unknow
 		else el.href = String(value);
 		return;
 	}
-
-	if (key.length > 2 && key.startsWith("on") && typeof value === "function") {
-		el.addEventListener(key[2].toLowerCase() + key.slice(3), value as EventListener);
-		return;
-	}
-
-	let eventName: string | null = null;
-	if (key.startsWith("on:")) {
-		eventName = key.slice(3);
-	} else if (key.length > 2 && key.startsWith("on") && key[2] === key[2].toUpperCase()) {
-		eventName = key.slice(2).toLowerCase();
-	}
-	if (eventName && (typeof value === "function" || typeof value === "string")) {
-		el.addEventListener(eventName, value as EventListener);
+	if (isEventKey(key)) {
+		if (typeof value === "function" || typeof value === "string") {
+			const eventName = key.startsWith("on:") ? key.slice(3) : key.slice(2).toLowerCase();
+			el.addEventListener(eventName, value as EventListener);
+		}
 		return;
 	}
 
@@ -216,11 +212,38 @@ function applyAttribute(el: HTMLElement | SVGElement, key: string, value: unknow
 	el.setAttribute(key, value === true ? "" : String(value));
 }
 
-function bindProp(el: HTMLElement | SVGElement, key: string, value: unknown) {
-	if (value === undefined) return;
-	if (isReactive(value)) {
+function bindProp(el: HTMLElement, key: string, value: unknown): void {
+	if (value == null) return;
+
+	if (key.startsWith("bind:")) {
+		const prop = key.slice(5);
+		if (isSignal(value)) {
+			effect(() => {
+				const v = (value as any).value;
+				if (prop === "checked" || prop === "value") {
+					(el as any)[prop] = v;
+				} else {
+					el.setAttribute(prop, v === true ? "" : String(v));
+				}
+			});
+			const handler = (e: Event) => {
+				const target = e.target as any;
+				(value as any).value = prop === "checked" ? target.checked : (target[prop] ?? target.value);
+			};
+			el.addEventListener("input", handler);
+			el.addEventListener("change", handler);
+		} else {
+			console.warn(
+				`aether: bind:${prop} strictly expects a Signal. Use ${prop}={() => ...} for getters.`,
+			);
+		}
+		return;
+	}
+
+	if (!isEventKey(key) && (isReactive(value) || typeof value === "function")) {
 		return void effect(() => applyAttribute(el, key, (value as () => unknown)()));
 	}
+
 	applyAttribute(el, key, value);
 }
 
@@ -291,7 +314,7 @@ function buildElement(tag: string, props: JSX.Props): HTMLElement | SVGElement {
 			continue;
 		}
 
-		bindProp(el, key, (props as Record<string, unknown>)[key]);
+		bindProp(el as HTMLElement, key, (props as Record<string, unknown>)[key]);
 	}
 
 	if (props.dangerouslySetInnerHTML != null) {
