@@ -27,7 +27,7 @@ const REACTIVE_MODULES = new Set([
 	"@404/aether/client",
 ]);
 const REACTIVE_PRIMITIVES = new Set(["signal", "computed", "effect", "batch", "untracked"]);
-const EVENT_HANDLER_RE = /^on[A-Z]/;
+const EVENT_HANDLER_RE = /^on(?:[A-Z]|:[a-z])/;
 
 export interface AstNode {
 	type: string;
@@ -145,9 +145,26 @@ export async function analyseIslandSource(
 		}
 
 		if (node.type === "JSXAttribute") {
-			const name = node.name?.type === "JSXIdentifier" ? node.name.name : null;
+			let name, testName;
+
+			if (node.name?.type === "JSXIdentifier") {
+				testName = node.name.name;
+
+				if (testName.startsWith("on") && testName.length > 2) {
+					name = `on:${testName.slice(2).toLowerCase()}`;
+				} else {
+					name = testName;
+				}
+			} else if (node.name?.type === "JSXNamespacedName") {
+				const namespace = node.name.namespace?.name;
+				const pathName = node.name.name?.name;
+				if (namespace && pathName) {
+					name = `${namespace}:${pathName}`;
+				}
+			}
+
 			if (
-				typeof name === "string" && EVENT_HANDLER_RE.test(name) &&
+				typeof name === "string" && EVENT_HANDLER_RE.test(testName ?? name) &&
 				node.value?.type === "JSXExpressionContainer"
 			) {
 				eventHandlers.add(name);
