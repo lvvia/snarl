@@ -10,4 +10,6 @@ export * from "@july/snarl";
 export * from "./control-flow.ts";
 export * from "./env.ts";
 export * from "./reactivity/mod.ts";
+
+export { createApp } from "./server/mod.ts";
 export * from "./server/mod.ts";

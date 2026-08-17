@@ -61,12 +61,9 @@ export default function Meow() {
 
 ```tsx
 // ./main.ts
-import { createApp } from "@404/imouto";
-import { aether } from "@404/aether/server";
+import { createApp } from "@404/aether";
 
 const app = await createApp({ routesDir: "./routes" });
-
-app.use(aether({ entrypoints: ["./routes"] }));
 
 app.serve({ port: 8000 });
 ```

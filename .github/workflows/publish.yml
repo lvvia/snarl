@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       package:
-        description: "Package to publish (all, snarl, varnish, imouto)"
+        description: "Package to publish"
         required: true
         type: choice
         options:
@@ -12,6 +12,7 @@ on:
           - snarl
           - varnish
           - imouto
+          - aether
         default: "all"
 
 jobs:
@@ -37,33 +38,102 @@ jobs:
           ./scripts/discover-packages.ts >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-  publish:
+  publish-snarl:
     runs-on: ubuntu-latest
     needs: discover
-    strategy:
-      fail-fast: false
-      matrix:
-        package: ${{ fromJson(needs.discover.outputs.packages) }}
+    if: |
+      github.event.inputs.package == 'all' ||
+      github.event.inputs.package == 'snarl'
     permissions:
       contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v7
-
       - uses: denoland/setup-deno@v2
-        if: |
-          github.event_name == 'push' ||
-          github.event.inputs.package == 'all' ||
-          matrix.package.name == github.event.inputs.package ||
-          endsWith(matrix.package.name, format('/{0}', github.event.inputs.package))
         with:
           deno-version: v2.x
+      - name: Get package info
+        id: info
+        run: |
+          PACKAGES='${{ needs.discover.outputs.packages }}'
+          PATH=$(echo "$PACKAGES" | jq -r '.[] | select(.name == "@july/snarl") | .path')
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Publish snarl
+        if: steps.info.outputs.path != ''
+        working-directory: ${{ steps.info.outputs.path }}
+        run: deno publish
 
-      - name: Publish ${{ matrix.package.name }}
-        if: |
-          github.event_name == 'push' ||
-          github.event.inputs.package == 'all' ||
-          matrix.package.name == github.event.inputs.package ||
-          endsWith(matrix.package.name, format('/{0}', github.event.inputs.package))
-        working-directory: ${{ matrix.package.path }}
+  publish-varnish:
+    runs-on: ubuntu-latest
+    needs: publish-snarl
+    if: |
+      github.event.inputs.package == 'all' ||
+      github.event.inputs.package == 'varnish'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Get package info
+        id: info
+        run: |
+          PACKAGES='${{ needs.discover.outputs.packages }}'
+          PATH=$(echo "$PACKAGES" | jq -r '.[] | select(.name == "@404/varnish") | .path')
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Publish varnish
+        if: steps.info.outputs.path != ''
+        working-directory: ${{ steps.info.outputs.path }}
+        run: deno publish
+
+  publish-imouto:
+    runs-on: ubuntu-latest
+    needs: publish-varnish
+    if: |
+      github.event.inputs.package == 'all' ||
+      github.event.inputs.package == 'imouto'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Get package info
+        id: info
+        run: |
+          PACKAGES='${{ needs.discover.outputs.packages }}'
+          PATH=$(echo "$PACKAGES" | jq -r '.[] | select(.name == "@404/imouto") | .path')
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Publish imouto
+        if: steps.info.outputs.path != ''
+        working-directory: ${{ steps.info.outputs.path }}
+        run: deno publish
+
+  publish-aether:
+    runs-on: ubuntu-latest
+    needs: publish-imouto
+    if: |
+      github.event.inputs.package == 'all' ||
+      github.event.inputs.package == 'aether'
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Get package info
+        id: info
+        run: |
+          PACKAGES='${{ needs.discover.outputs.packages }}'
+          PATH=$(echo "$PACKAGES" | jq -r '.[] | select(.name == "@404/aether") | .path')
+          echo "path=$PATH" >> $GITHUB_OUTPUT
+      - name: Publish aether
+        if: steps.info.outputs.path != ''
+        working-directory: ${{ steps.info.outputs.path }}
         run: deno publish
