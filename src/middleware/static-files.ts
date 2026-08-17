@@ -6,7 +6,7 @@
 
 import { encodeHex } from "@std/encoding/hex";
 import { contentType } from "@std/media-types";
-import { extname, join, relative, resolve } from "@std/path";
+import { extname, isAbsolute, join, relative, resolve, SEPARATOR } from "@std/path";
 import type { Middleware } from "../context/mod.ts";
 import { HttpError } from "../errors.ts";
 import { ByteSliceStream } from "@std/streams";
@@ -124,10 +124,13 @@ export function staticFiles(root: string, options: StaticFilesOptions = {}): Mid
 		const decodedPath = decodeURIComponent(ctx.url.pathname);
 		let filepath = resolve(root, decodedPath.slice(1));
 
-		if (!filepath.startsWith(root)) return next();
-
 		const relativePath = relative(root, filepath);
-		if (relativePath !== "." && /(^|\/|\\)\./.test(relativePath)) {
+		if (
+			relativePath === ".." || relativePath.startsWith(`..${SEPARATOR}`) || isAbsolute(relativePath)
+		) {
+			return next();
+		}
+		if (relativePath !== "." && /(^|[\\/])\./.test(relativePath)) {
 			if (dotfiles === "deny") return new Response("Forbidden", { status: 403 });
 			if (dotfiles === "ignore") return next();
 		}
@@ -205,11 +208,12 @@ export function staticFiles(root: string, options: StaticFilesOptions = {}): Mid
 		}
 		headers.set("Content-Length", stat.size.toString());
 
+		let file: Deno.FsFile;
 		try {
-			using file = await Deno.open(filepath, { read: true });
-			return new Response(file.readable, { headers });
+			file = await Deno.open(filepath, { read: true });
 		} catch {
 			return next();
 		}
+		return new Response(file.readable, { headers });
 	};
 }
