@@ -8,6 +8,7 @@ import { type Context, type Middleware, MutableResponse, provideMiddleware } fro
 import { type AetherServeOptions, bundleIslands, encodeEntryKey } from "./bundler.ts";
 import { discoverAndRegisterIslands } from "./discover.ts";
 import { getUsedIslands } from "./registry.ts";
+import { log } from "@july/snarl/verbosity";
 
 const BUNDLE_CACHE = new Map<string, string>();
 
@@ -57,15 +58,16 @@ async function injectIslandScript(
 	});
 }
 
+const isProduction = () => Deno.env.get("ENV") === "production";
+
 export function aether(options: AetherOptions = {}): Middleware {
 	const cache = options.cache ?? BUNDLE_CACHE;
 
-	const ready = options.entrypoints
-		? discoverAndRegisterIslands(options.entrypoints)
-		: Promise.resolve();
+	if (options.entrypoints) {
+		discoverAndRegisterIslands(options.entrypoints).catch(log.error);
+	}
 
 	return async (ctx, next) => {
-		await ready;
 		const { pathname } = ctx.url;
 
 		if (pathname.startsWith("/_aether/entry/")) {
@@ -87,7 +89,7 @@ export function aether(options: AetherOptions = {}): Middleware {
 			return new Response(code, {
 				headers: {
 					"Content-Type": "application/javascript; charset=utf-8",
-					"Cache-Control": "public, max-age=31536000, immutable",
+					"Cache-Control": isProduction() ? "public, max-age=1209600, immutable" : "no-cache",
 				},
 			});
 		}
@@ -111,10 +113,6 @@ provideMiddleware({
 		{
 			descriptor: { name: "read" } as Deno.PermissionDescriptor,
 			reason: `to discover islands`,
-		},
-		{
-			descriptor: { name: "env", variable: "TSC_WATCHFILE" },
-			reason: "ts-blank-space",
 		},
 	],
 });
