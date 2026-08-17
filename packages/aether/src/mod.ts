@@ -7,7 +7,7 @@
 export * from "@404/imouto";
 export * from "@july/snarl";
 
-export * from "./server/mod.ts";
-export * from "./reactivity/mod.ts";
 export * from "./control-flow.ts";
 export * from "./env.ts";
+export * from "./reactivity/mod.ts";
+export * from "./server/mod.ts";

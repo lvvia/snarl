@@ -10,3 +10,4 @@ export * from "./middleware.ts";
 export * from "./registry.ts";
 export * from "./analyser.ts";
 export * from "./discover.ts";
+export * from "./app.ts";

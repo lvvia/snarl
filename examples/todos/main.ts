@@ -4,11 +4,8 @@
  * SPDX-License-Identifier: MPL-2.0
  */
 
-import { createApp } from "@404/imouto";
-import { aether } from "@404/aether/server";
+import { createApp } from "@404/aether/server";
 
 const app = await createApp({ routesDir: "./routes" });
-
-app.use(aether({ entrypoints: ["./routes"] }));
 
 app.serve({ port: 8001 });
