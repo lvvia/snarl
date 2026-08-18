@@ -114,6 +114,9 @@ function notify(effect: EffectNode): void {
 	}
 }
 
+const disposalWorklist: ReactiveNode[] = [];
+let disposalWorklistActive = false;
+
 function unwatched(node: SignalNode | ComputedNode | EffectNode | EffectScopeNode): void {
 	switch (node.kind) {
 		case NodeKind.Computed:
@@ -190,11 +193,26 @@ export function pruneChildEffectDeps(node: ReactiveNode): void {
 }
 
 export function disposeAllDepsInReverse(node: ReactiveNode): void {
-	let edge = node.depsTail;
-	while (edge !== undefined) {
-		const prev = edge.prevDep;
-		unlink(edge, node);
-		edge = prev;
+	if (disposalWorklistActive) {
+		disposalWorklist.push(node);
+		return;
+	}
+
+	disposalWorklistActive = true;
+	try {
+		let current: ReactiveNode | undefined = node;
+		while (current !== undefined) {
+			let edge = current.depsTail;
+			while (edge !== undefined) {
+				const prev = edge.prevDep;
+				unlink(edge, current);
+				edge = prev;
+			}
+			current = disposalWorklist.pop();
+		}
+	} finally {
+		disposalWorklistActive = false;
+		disposalWorklist.length = 0;
 	}
 }
 
