@@ -5,25 +5,52 @@
  */
 
 import { type Context, type Middleware, MutableResponse, provideMiddleware } from "@july/snarl";
-import { type AetherServeOptions, bundleIslands, encodeEntryKey } from "./bundler.ts";
+import {
+	type AetherServeOptions,
+	bundleIslands,
+	decodeEntryKey,
+	encodeEntryKey,
+} from "./bundler.ts";
 import { discoverAndRegisterIslands } from "./discover.ts";
 import { getUsedIslands } from "./registry.ts";
 import { log } from "@july/snarl/verbosity";
+import { boring } from "@404/aether";
 
 const BUNDLE_CACHE = new Map<string, string>();
-
-function decodeEntryKey(key: string): string[] {
-	return key.length === 0 ? [] : key.split(",").map(decodeURIComponent);
-}
+const HASH_BY_NAMESET = new Map<string, string>();
 
 export interface AetherOptions extends AetherServeOptions {
 	/** directories or files to analyse for interactive components */
 	entrypoints?: string[];
 }
 
+async function resolveBundle(
+	names: readonly string[],
+	options: AetherOptions,
+	cache: Map<string, string>,
+): Promise<{ code: string; hash: string }> {
+	const nameSetKey = names.join(",");
+
+	const knownHash = HASH_BY_NAMESET.get(nameSetKey);
+	if (knownHash) {
+		const cached = cache.get(knownHash);
+		if (cached !== undefined) return { code: cached, hash: knownHash };
+	}
+
+	const code = await bundleIslands(names, options);
+	const hash = boring(code);
+
+	cache.set(hash, code);
+	HASH_BY_NAMESET.set(nameSetKey, hash);
+
+	return { code, hash };
+}
+
 async function injectIslandScript(
 	response: MutableResponse,
 	ctx: Context,
+	options: AetherOptions,
+	cache: Map<string, string>,
 ): Promise<MutableResponse> {
 	const contentType = response.headers.get("Content-Type") ?? "";
 	if (!contentType.includes("text/html")) return response;
@@ -31,8 +58,17 @@ async function injectIslandScript(
 	const used = getUsedIslands(ctx);
 	if (!used || used.size === 0) return response;
 
-	const key = encodeEntryKey(used);
-	const src = `/_aether/entry/${key}.js`;
+	const names = [...new Set(used)].sort();
+
+	let hash: string;
+	try {
+		({ hash } = await resolveBundle(names, options, cache));
+	} catch (err) {
+		log.error("aether", "failed to pre-bundle islands for script injection:", err);
+		return response;
+	}
+
+	const src = `/_aether/entry/${encodeEntryKey(names)}.${hash}.js`;
 
 	const html = await response.text();
 	if (!html || html.includes(src)) return response;
@@ -58,7 +94,8 @@ async function injectIslandScript(
 	});
 }
 
-const isProduction = () => Deno.env.get("ENV") === "production";
+const CACHE_CONTROL_IMMUTABLE = "public, max-age=31536000, immutable";
+const ENTRY_ROUTE_RE = /^\/_aether\/entry\/([^.]*)\.([0-9a-z]+)\.js$/;
 
 export function aether(options: AetherOptions = {}): Middleware {
 	const cache = options.cache ?? BUNDLE_CACHE;
@@ -70,32 +107,46 @@ export function aether(options: AetherOptions = {}): Middleware {
 	return async (ctx, next) => {
 		const { pathname } = ctx.url;
 
-		if (pathname.startsWith("/_aether/entry/")) {
-			let key = pathname.slice(15);
+		const match = pathname.match(ENTRY_ROUTE_RE);
+		if (match) {
+			const [, encodedNames, requestedHash] = match;
+			const names = decodeEntryKey(encodedNames);
 
-			if (key.endsWith(".js")) {
-				key = key.slice(0, -3);
+			const cached = cache.get(requestedHash);
+			if (cached !== undefined) {
+				return new Response(cached, {
+					headers: {
+						"Content-Type": "application/javascript; charset=utf-8",
+						"Cache-Control": CACHE_CONTROL_IMMUTABLE,
+					},
+				});
 			}
 
-			const names = decodeEntryKey(key);
-			const cacheKey = names.join(",");
-
-			let code = cache.get(cacheKey);
-			if (!code) {
-				code = await bundleIslands(names, options);
-				cache.set(cacheKey, code);
+			let rebuilt: { code: string; hash: string };
+			try {
+				rebuilt = await resolveBundle(names, options, cache);
+			} catch (err) {
+				log.error("aether", `failed to bundle entry "${encodedNames}":`, err);
+				return new Response("Failed to bundle island entry", { status: 500 });
 			}
 
-			return new Response(code, {
+			if (rebuilt.hash !== requestedHash) {
+				return new Response("stale island bundle; reload the page", {
+					status: 409,
+					headers: { "Cache-Control": "no-store" },
+				});
+			}
+
+			return new Response(rebuilt.code, {
 				headers: {
 					"Content-Type": "application/javascript; charset=utf-8",
-					"Cache-Control": isProduction() ? "public, max-age=1209600, immutable" : "no-cache",
+					"Cache-Control": CACHE_CONTROL_IMMUTABLE,
 				},
 			});
 		}
 
 		const response = await next();
-		return injectIslandScript(response, ctx);
+		return injectIslandScript(response, ctx, options, cache);
 	};
 }
 
