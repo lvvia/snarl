@@ -6,7 +6,7 @@
 
 import { boring } from "@404/imouto";
 import { fromFileUrl } from "@std/path";
-import { getIslandModuleUrl } from "./registry.ts";
+import { getIslandExportName, getIslandModuleUrl } from "./registry.ts";
 
 import type { BuildOptions, Plugin } from "esbuild";
 
@@ -159,10 +159,16 @@ function buildEntrySource(names: readonly string[]): string {
 		const specifier = getIslandModuleUrl(name);
 		if (!specifier) throw new Error(`aether: no island registered under name "${name}"`);
 
+		const exportName = getIslandExportName(name);
+
 		const url = new URL(specifier);
 		const path = url.protocol === "file:" ? fromFileUrl(url) : url.href;
 
-		lines.push(`import island${i} from ${JSON.stringify(path)};`);
+		if (exportName === "default") {
+			lines.push(`import island${i} from ${JSON.stringify(path)};`);
+		} else {
+			lines.push(`import { ${exportName} as island${i} } from ${JSON.stringify(path)};`);
+		}
 		lines.push(`registerIsland(${JSON.stringify(name)}, island${i});`);
 	});
 
