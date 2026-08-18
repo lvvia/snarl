@@ -179,3 +179,7 @@ function buildEntrySource(names: readonly string[]): string {
 export function encodeEntryKey(names: Iterable<string>): string {
 	return [...new Set(names)].sort().map(encodeURIComponent).join(",");
 }
+
+export function decodeEntryKey(key: string): string[] {
+	return key.length === 0 ? [] : key.split(",").map(decodeURIComponent);
+}
